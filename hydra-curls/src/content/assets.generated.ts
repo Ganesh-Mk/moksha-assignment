@@ -904,6 +904,29 @@ export const ASSETS = {
     fallback: '/assets/optimized/wordmark.png',
     alt: 'Hydra Curls',
   },
+  'logo-lockup-hero': {
+    width: 1187,
+    height: 570,
+    widths: [320, 480, 640, 768, 960, 1187],
+    avif: {
+      320: '/assets/optimized/logo-lockup-hero-320.avif',
+      480: '/assets/optimized/logo-lockup-hero-480.avif',
+      640: '/assets/optimized/logo-lockup-hero-640.avif',
+      768: '/assets/optimized/logo-lockup-hero-768.avif',
+      960: '/assets/optimized/logo-lockup-hero-960.avif',
+      1187: '/assets/optimized/logo-lockup-hero-1187.avif',
+    },
+    webp: {
+      320: '/assets/optimized/logo-lockup-hero-320.webp',
+      480: '/assets/optimized/logo-lockup-hero-480.webp',
+      640: '/assets/optimized/logo-lockup-hero-640.webp',
+      768: '/assets/optimized/logo-lockup-hero-768.webp',
+      960: '/assets/optimized/logo-lockup-hero-960.webp',
+      1187: '/assets/optimized/logo-lockup-hero-1187.webp',
+    },
+    fallback: '/assets/optimized/logo-lockup-hero.png',
+    alt: 'Parachute Advanced Hydra Curls',
+  },
 } as const satisfies Record<string, AssetRenditions>
 
 export type AssetName = keyof typeof ASSETS

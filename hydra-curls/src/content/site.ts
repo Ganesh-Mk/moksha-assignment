@@ -16,7 +16,12 @@ export const site = {
 } as const
 
 export const hero = {
-  headline: 'Pure ingredients. Real results. Every drop matters.',
+  /**
+   * Two designed lines. The break is authored, not incidental — Figma sets this as one
+   * 1098px-wide centred text node that wraps after "results." — so it is reproduced from `md`
+   * up and allowed to reflow naturally below that.
+   */
+  headlineLines: ['Pure ingredients. Real results.', 'Every drop matters.'],
 } as const
 
 /** Repeated across both benefit cards and the first promise block, exactly as authored. */

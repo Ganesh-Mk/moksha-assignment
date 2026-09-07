@@ -19,7 +19,7 @@ export function ScrollCue({ href, label, className }: ScrollCueProps) {
     <a
       href={href}
       className={cn(
-        'inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 text-white',
+        'inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5',
         className,
       )}
     >
@@ -28,7 +28,7 @@ export function ScrollCue({ href, label, className }: ScrollCueProps) {
         aria-hidden="true"
         focusable="false"
         viewBox="0 0 30 45"
-        className="h-11 w-8"
+        className="h-9 w-7"
         fill="none"
         stroke="currentColor"
         strokeWidth="2.5"

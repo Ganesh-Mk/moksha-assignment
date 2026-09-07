@@ -26,10 +26,10 @@
 5. Build primitives, then sections in page order
 
 ## Section checklist (Phase 1)
-- [ ] 1. Navbar
+- [x] 1. Navbar — logo, centred links, Sheet below `lg`
 - [ ] 2. Announcement ticker
-- [ ] 3. Hero
-- [ ] 4. Wave divider
+- [x] 3. Hero — raster bg, gradient-clip headline, derived white logo, flourish, scroll cue
+- [x] 4. Wave divider — primitive, reused at y4273
 - [ ] 5. New Launch
 - [ ] 6. Brand key visual
 - [ ] 7. Benefit cards
@@ -67,6 +67,14 @@ All of `../docs/` was outside the blast radius and survived intact.
 **Rules added to `CLAUDE.md` as a result:** never pass `--overwrite`/`--force` to a scaffolder in a
 populated directory; commit before running tooling; list a directory before running anything that
 can delete.
+
+## Verification harness
+`node scripts/shoot.mjs` screenshots the dev server at 320/375/768/1024/1440/1920 and reports,
+per width: horizontal overflow (with a selector for the offending element), tap targets under
+44px, and the heading outline. `--w`, `--clip`, `--out` narrow it to one section.
+`node scripts/inspect-node.mjs "<name>" | <yFrom> <yTo>` prints a measured subtree of the Figma
+frame — positions, fills, gradients, type styles — so section work reads from the file rather
+than from a render.
 
 ## Blocked / waiting
 - Nothing.

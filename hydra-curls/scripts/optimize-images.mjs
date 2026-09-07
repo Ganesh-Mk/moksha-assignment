@@ -135,6 +135,53 @@ const ASSETS = [
  */
 const LADDER = [320, 480, 640, 768, 960, 1280, 1600, 1920, 2560]
 
+/**
+ * Assets derived from another asset rather than downloaded.
+ *
+ * The hero shows the same lockup as the navbar but with the "Hydra Curls" script in white
+ * instead of cyan. Figma produces that with a mask group, which exports no separate image, and
+ * no single CSS filter can lift the cyan to white while leaving the navy square dark — the two
+ * differ in hue, not brightness. So the recolour happens here, once, at build time.
+ */
+const DERIVED = [
+  {
+    from: 'logo-lockup',
+    name: 'logo-lockup-hero',
+    alt: 'Parachute Advanced Hydra Curls',
+    transform: recolourCyanToWhite,
+  },
+]
+
+/**
+ * Repaints cyan pixels white, leaving the navy square and everything else alone.
+ *
+ * Cyan here means "clearly more blue-green than red" — the script is around #4DD8FA and the
+ * square around #1B3A5C, so a red-channel threshold separates them cleanly without touching
+ * the antialiased edges, whose alpha is preserved.
+ */
+async function recolourCyanToWhite(input) {
+  const { data, info } = await sharp(input)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i]
+    const g = data[i + 1]
+    const b = data[i + 2]
+    // Cyan: blue and green both well above red, and bright enough not to be the dark square.
+    if (b > r + 40 && g > r + 30 && b > 120) {
+      data[i] = 255
+      data[i + 1] = 255
+      data[i + 2] = 255
+    }
+  }
+
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
+    .png()
+    .toBuffer()
+}
+
 const shipped = ASSETS.filter((a) => a.ref)
 const skipped = ASSETS.filter((a) => a.skip)
 
@@ -152,14 +199,34 @@ const findSource = (ref) => files.find((f) => f.startsWith(ref))
 const manifest = {}
 let totalOut = 0
 
-for (const asset of shipped) {
+/**
+ * The work queue. `input` is whatever sharp accepts — a path for downloaded assets, an
+ * in-memory buffer for derived ones — so the encoding loop below treats both identically.
+ */
+const queue = shipped.map((asset) => {
   const file = findSource(asset.ref)
   if (!file) {
     console.error(`  ✖ no source for ${asset.name} (${asset.ref})`)
     process.exit(1)
   }
+  return { name: asset.name, alt: asset.alt, input: join(SRC_DIR, file) }
+})
 
-  const input = join(SRC_DIR, file)
+for (const derived of DERIVED) {
+  const parent = queue.find((q) => q.name === derived.from)
+  if (!parent) {
+    console.error(`  ✖ derived asset ${derived.name} has no source ${derived.from}`)
+    process.exit(1)
+  }
+  queue.push({
+    name: derived.name,
+    alt: derived.alt,
+    input: await derived.transform(parent.input),
+  })
+}
+
+for (const asset of queue) {
+  const input = asset.input
   const image = sharp(input)
   const meta = await image.metadata()
   const intrinsic = meta.width ?? 0
