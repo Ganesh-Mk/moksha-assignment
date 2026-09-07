@@ -57,15 +57,26 @@ ADMIN_ROUTES = [(m, p) for m, p in ALL_ROUTES if "/admin/" in p]
 CUSTOMER_ROUTES = [
     (m, p)
     for m, p in ALL_ROUTES
-    if p.startswith(f"{API}/orders") or p in {f"{API}/auth/me", f"{API}/auth/logout"}
+    if p.startswith(f"{API}/orders")
+    or p
+    in {
+        f"{API}/auth/me",
+        f"{API}/auth/logout",
+        f"{API}/payments/create-checkout-session",
+    }
 ]
+
+# Authenticated by a request signature rather than by a bearer token. Its own bucket because it
+# is genuinely a fourth posture: unauthenticated callers are refused, but with 400 (bad
+# signature) rather than 401 (no token) — Stripe has no token to send.
+SIGNATURE_AUTHENTICATED_ROUTES = [(m, p) for m, p in ALL_ROUTES if p.endswith("/payments/webhook")]
 
 PUBLIC_ROUTES = [
     (m, p)
     for m, p in ALL_ROUTES
     if p.startswith(f"{API}/products")
     or p.startswith(f"{API}/health")
-    or p in {f"{API}/auth/google", f"{API}/auth/refresh"}
+    or p in {f"{API}/auth/google", f"{API}/auth/refresh", f"{API}/payments/config"}
 ]
 
 
@@ -104,7 +115,12 @@ class TestEveryRouteIsAccountedFor:
         A route in none of the three buckets has an undeclared auth posture, which is precisely
         the state this whole file exists to prevent.
         """
-        classified = {*ADMIN_ROUTES, *CUSTOMER_ROUTES, *PUBLIC_ROUTES}
+        classified = {
+            *ADMIN_ROUTES,
+            *CUSTOMER_ROUTES,
+            *PUBLIC_ROUTES,
+            *SIGNATURE_AUTHENTICATED_ROUTES,
+        }
         unclassified = [r for r in ALL_ROUTES if r not in classified]
 
         assert unclassified == [], f"Routes with no declared auth posture: {unclassified}"
@@ -144,6 +160,26 @@ class TestUnauthenticatedAccess:
         response = await client.request(method, _url(path), json=_body(method, path))
 
         assert response.status_code != 401, f"{method} {path} should not require authentication"
+
+
+class TestSignatureAuthenticatedRoutes:
+    """The Stripe webhook is public but not unauthenticated."""
+
+    @pytest.mark.parametrize(
+        ("method", "path"), SIGNATURE_AUTHENTICATED_ROUTES, ids=lambda v: str(v)
+    )
+    async def test_an_unsigned_request_is_refused(
+        self, client: AsyncClient, method: str, path: str
+    ) -> None:
+        """400, not 401.
+
+        There is no bearer token to be missing — the signature is the credential, and a request
+        without a valid one is malformed rather than unauthenticated. What matters is that it is
+        refused: an unsigned webhook that worked would be an open "mark any order paid" endpoint.
+        """
+        response = await client.request(method, _url(path), json={"id": "evt_x", "type": "x"})
+
+        assert response.status_code in (400, 503), f"{method} {path} accepted an unsigned request"
 
 
 class TestCustomerCannotReachAdminRoutes:

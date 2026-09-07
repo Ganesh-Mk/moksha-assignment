@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import admin, auth, health, orders, products
+from app.api.v1 import admin, auth, health, orders, payments, products
 
 api_router = APIRouter()
 
@@ -22,6 +22,10 @@ api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 # Authenticated customer surface. Every route is scoped to the caller inside the service layer.
 api_router.include_router(orders.router, prefix="/orders", tags=["orders"])
+
+# Mixed: creating a checkout session requires the caller to own the order; the webhook is public
+# but authenticated by Stripe's signature, because Stripe has no bearer token to send.
+api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 
 # Admin-only. The dependency is declared on the router itself, so a route added there later is
 # protected whether or not its author remembers to protect it.
