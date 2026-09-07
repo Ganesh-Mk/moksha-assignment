@@ -35,10 +35,13 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.config import settings
+from app.core.deps import get_google_verifier
 from app.core.platform import apply_windows_event_loop_policy
+from app.core.security import create_token
 from app.database import _async_url, get_db
 from app.main import create_app
-from app.models import Base
+from app.models import Base, User, UserRole
+from tests.fakes import FakeGoogleVerifier
 
 apply_windows_event_loop_policy()
 
@@ -99,13 +102,21 @@ async def db(sessionmaker_: async_sessionmaker[AsyncSession]) -> AsyncGenerator[
 
 
 @pytest.fixture
+def google() -> FakeGoogleVerifier:
+    """The Google verification double. Register an email, get a token that verifies."""
+    return FakeGoogleVerifier()
+
+
+@pytest.fixture
 async def client(
     sessionmaker_: async_sessionmaker[AsyncSession],
+    google: FakeGoogleVerifier,
 ) -> AsyncGenerator[AsyncClient, None]:
     """An HTTP client bound to the app in-process — no live server, no network.
 
     Requests go through the real middleware, routers, dependencies and exception handlers, so an
-    authz test here is testing the same code path production uses.
+    authz test here exercises the same code path production uses. Only the Google network call
+    is replaced, at the seam the application already has.
     """
     app = create_app()
 
@@ -114,10 +125,74 @@ async def client(
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_google_verifier] = lambda: google
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        ac.app = app  # type: ignore[attr-defined]  # lets tests add further overrides
         yield ac
 
     app.dependency_overrides.clear()
+
+
+# --- Identity fixtures ------------------------------------------------------------------
+#
+# Tokens here are REAL, signed with the app's own key by the app's own `create_token`. Only
+# Google's verification is faked. An authz test that used a fake token would be testing the
+# fake, not the guard.
+
+
+async def _make_user(
+    sessionmaker_: async_sessionmaker[AsyncSession],
+    *,
+    email: str,
+    role: UserRole,
+    is_active: bool = True,
+) -> User:
+    async with sessionmaker_() as session:
+        user = User(
+            google_sub=f"sub-{email}",
+            email=email,
+            name=email.split("@")[0].title(),
+            role=role,
+            is_active=is_active,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        return user
+
+
+@pytest.fixture
+async def customer(sessionmaker_: async_sessionmaker[AsyncSession]) -> User:
+    return await _make_user(sessionmaker_, email="customer@moksha.test", role=UserRole.CUSTOMER)
+
+
+@pytest.fixture
+async def other_customer(sessionmaker_: async_sessionmaker[AsyncSession]) -> User:
+    """A second customer. Every ownership test needs someone to *not* be."""
+    return await _make_user(sessionmaker_, email="other@moksha.test", role=UserRole.CUSTOMER)
+
+
+@pytest.fixture
+async def admin(sessionmaker_: async_sessionmaker[AsyncSession]) -> User:
+    return await _make_user(sessionmaker_, email="admin@moksha.test", role=UserRole.ADMIN)
+
+
+def auth_header(user: User) -> dict[str, str]:
+    token = create_token(user_id=user.id, role=user.role.value, token_type="access")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def as_customer(customer: User) -> dict[str, str]:
+    return auth_header(customer)
+
+
+@pytest.fixture
+def as_other_customer(other_customer: User) -> dict[str, str]:
+    return auth_header(other_customer)
+
+
+@pytest.fixture
+def as_admin(admin: User) -> dict[str, str]:
+    return auth_header(admin)
