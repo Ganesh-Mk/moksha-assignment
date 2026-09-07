@@ -31,6 +31,7 @@ export function PremiumIngredients() {
       {/* One of the 144-glyph Inter arcs. Kept faint — it is a watermark behind the
           content, not a label. Hidden below `lg`, where it would crowd the heading. */}
       <CurvedText
+        id="ingredients-watermark"
         chord={900}
         sag={-620}
         fontSize={26}

@@ -168,6 +168,7 @@ export function ProductShowcase() {
           bounding boxes of the 48 individual glyph nodes. Pulled up so it tucks under the
           circle's rim the way it does in the design. */}
       <CurvedText
+        id="showcase-arc"
         chord={1572}
         sag={251}
         fontSize={72}

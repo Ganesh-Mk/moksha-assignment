@@ -1,8 +1,13 @@
-import { useId } from 'react'
-
 import { cn } from '@/lib/utils'
 
 interface CurvedTextProps {
+  /**
+   * Unique id for the SVG path this text follows. Passed in rather than generated with
+   * `useId` because only some of the page hydrates, and React's generated ids depend on a
+   * component's position within its root — an element rendered on the server under one root
+   * and hydrated under another would disagree about its own id.
+   */
+  id: string
   children: string
   className?: string
   /** Arc width in SVG user units. Use the Figma span so `sag` and `fontSize` stay comparable. */
@@ -37,6 +42,7 @@ interface CurvedTextProps {
  * accessibility tree, so labelling the wrapper would announce the same sentence twice.
  */
 export function CurvedText({
+  id,
   children,
   className,
   chord = 1572,
@@ -44,8 +50,7 @@ export function CurvedText({
   fontSize = 72,
   fontClassName = 'font-script',
 }: CurvedTextProps) {
-  // The path is referenced by id and this component renders more than once on the page.
-  const pathId = useId()
+  const pathId = `curve-${id}`
 
   // Radius of the circle through both ends and the midpoint, from the sagitta:
   // R = c² / 8s + s / 2. Guard against a zero sag, which would be a straight line.

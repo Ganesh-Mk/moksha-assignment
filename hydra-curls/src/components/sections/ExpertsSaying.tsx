@@ -23,6 +23,7 @@ export function ExpertsSaying() {
   return (
     <section aria-labelledby="experts-heading" className="bg-page relative w-full overflow-hidden">
       <CurvedText
+        id="experts-watermark"
         chord={700}
         sag={620}
         fontSize={26}

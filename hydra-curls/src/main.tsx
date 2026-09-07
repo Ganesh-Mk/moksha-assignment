@@ -1,31 +1,54 @@
 import { StrictMode } from 'react'
-import { createRoot, hydrateRoot } from 'react-dom/client'
+import { hydrateRoot } from 'react-dom/client'
 
-import App from '@/App.tsx'
+import { ISLANDS, type IslandName } from '@/islands'
 import '@/styles/globals.css'
 
-const root = document.getElementById('root')
-if (!root) throw new Error('Root element #root not found in index.html')
+/**
+ * Hydrates only the interactive islands.
+ *
+ * By the time this runs the page is already painted and readable: the build prerenders the tree
+ * to HTML and scripts/prerender.mjs replaces the module script with a loader that waits for the
+ * first idle callback or the first real interaction. So there is no whole-page `hydrateRoot`
+ * here — attaching React to the entire document cost 400-800ms of blocking main-thread work to
+ * give behaviour to thousands of nodes that have none.
+ *
+ * In dev, index.html ships an empty root and Vite serves the modules directly, so there is
+ * nothing prerendered to hydrate; that path renders the full app instead.
+ */
+async function mount() {
+  const root = document.getElementById('root')
 
-const app = (
-  <StrictMode>
-    <App />
-  </StrictMode>
-)
+  if (!root?.hasChildNodes()) {
+    // Dev: no prerendered markup, so render the whole app into the empty root.
+    const [{ createRoot }, { default: App }] = await Promise.all([
+      import('react-dom/client'),
+      import('@/App.tsx'),
+    ])
+    if (!root) throw new Error('Root element #root not found in index.html')
+    createRoot(root).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    )
+    return
+  }
 
-if (root.hasChildNodes()) {
-  /*
-   * The build prerenders the whole tree into index.html, so the page is painted and readable
-   * before this file is even fetched — scripts/prerender.mjs replaces the module script with a
-   * loader that waits for the first idle callback or the first real interaction.
-   *
-   * That deferral lives in the HTML rather than here on purpose: deferring inside this module
-   * would still pay the cost of downloading and evaluating the bundle before first paint,
-   * which was the 2.8s of render delay this is meant to remove. By the time this runs, the
-   * decision to hydrate has already been made, so it hydrates immediately.
-   */
-  hydrateRoot(root, app)
-} else {
-  // Dev only: index.html still ships an empty root there, so there is nothing to hydrate.
-  createRoot(root).render(app)
+  for (const el of document.querySelectorAll<HTMLElement>('[data-island]')) {
+    const name = el.dataset.island as IslandName | undefined
+    const Island = name ? ISLANDS[name] : undefined
+    if (!Island) {
+      // A wrapper with no matching component means App.tsx and islands.tsx have drifted apart.
+      console.warn(`Unknown island "${name}" — nothing hydrated.`)
+      continue
+    }
+    hydrateRoot(
+      el,
+      <StrictMode>
+        <Island />
+      </StrictMode>,
+    )
+  }
 }
+
+void mount()

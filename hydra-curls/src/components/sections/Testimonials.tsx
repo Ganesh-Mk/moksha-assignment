@@ -35,6 +35,7 @@ export function Testimonials() {
       className="bg-brand-cyan-mid relative w-full overflow-hidden py-16 md:py-20"
     >
       <CurvedText
+        id="testimonials-watermark"
         chord={700}
         sag={-520}
         fontSize={26}

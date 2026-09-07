@@ -1,5 +1,4 @@
 import { ChevronRight } from 'lucide-react'
-import { useId } from 'react'
 
 import { Container } from '@/components/layout/Container'
 import { Eyebrow } from '@/components/primitives/Eyebrow'
@@ -16,7 +15,7 @@ import { site } from '@/content/site'
  * arc — CurvedText's API is a chord and a sag, which cannot express 360°.
  */
 function BrandMedallion() {
-  const pathId = useId()
+  const pathId = 'medallion-rim'
 
   return (
     <div className="relative mx-auto size-[9.5rem] md:size-[14.9375rem]">
