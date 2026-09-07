@@ -1,0 +1,256 @@
+/*
+ * Design tokens for the Hydra Curls landing page.
+ *
+ * This file is the ONLY place a raw hex value may appear. Every colour below was measured out
+ * of the Figma node tree rather than sampled off a render — see docs/figma/DESIGN_SPEC.md for
+ * the full census and the usage counts that justify which colours earned a token.
+ *
+ * Tailwind v4 turns each `@theme` entry into both a CSS custom property and a utility class,
+ * so `--color-brand-cyan` gives `bg-brand-cyan`, `text-brand-cyan`, `border-brand-cyan`, etc.
+ */
+
+/* Self-hosted so there is no render-blocking request to a third party, no CLS from a late
+   font swap, and no privacy footnote. Each package ships per-subset @font-face rules with
+   `unicode-range`, so a browser only ever downloads the Latin file this page actually uses. */
+@import '@fontsource-variable/montserrat/wght.css';
+@import '@fontsource/kaushan-script/400.css';
+@import '@fontsource/caveat/400.css';
+@import '@fontsource-variable/inter/wght.css';
+
+@import 'tailwindcss';
+
+@theme {
+  /* ---------------------------------------------------------------- colour --- */
+
+  /* Brand cyan — 77 uses, the highest-signal colour in the file */
+  --color-brand-cyan: #00d5fd;
+  --color-brand-cyan-deep: #02d3fc; /* gradient partner to brand-cyan */
+  --color-brand-cyan-dark: #1daec6; /* "Learn More" pill gradient start */
+  --color-brand-cyan-bright: #49e2ff;
+  --color-brand-cyan-mid: #77dbfc; /* borders, hover states */
+  --color-brand-cyan-tint: #c7eeff; /* card backgrounds */
+  --color-brand-cyan-soft: #daf6ff; /* full section bands */
+  --color-brand-cyan-deepest: #009aba;
+  --color-brand-blue: #007bce;
+
+  /* Brand purple — hero and the product showcase band */
+  --color-brand-purple: #76468a;
+  --color-brand-purple-light: #834e99;
+
+  /* Navy — the hero headline gradient runs navy → purple → navy */
+  --color-brand-navy: #1d3565;
+  --color-brand-navy-deep: #091b3b;
+  --color-brand-navy-soft: #5365bb;
+
+  /* Neutrals */
+  --color-ink: #040c1e; /* primary text on light */
+  --color-page: #f3fdff; /* frame background */
+  --color-grey-500: #737373; /* secondary text — 32 uses */
+  --color-grey-400: #a2a2a2; /* muted text, second tier */
+  --color-grey-300: #c0c2c6;
+  --color-grey-250: #dbdbdb;
+  --color-grey-200: #dfdfdf; /* the default hairline border — 36 uses */
+  --color-grey-150: #d9d9d9;
+  --color-grey-100: #dce0e2;
+  --color-grey-700: #666666;
+  --color-grey-800: #343434;
+
+  /* Semantic */
+  --color-success: #34c759; /* the ✓ tick inside the trust badges */
+  --color-star: #facc15; /* ★ rating fill */
+
+  /* Pastels — ingredient and benefit chips */
+  --color-pastel-periwinkle: #aab9ff;
+  --color-pastel-pink: #ebbbff;
+  --color-pastel-peach: #ffcfaf;
+  --color-pastel-green: #d9fea6;
+  --color-pastel-blush: #ffd0d0;
+
+  /* -------------------------------------------------------------- typeface --- */
+
+  /* Gotham is a paid Hoefler face and cannot ship. Montserrat is the standard geometric-sans
+     stand-in: near-identical proportions, on Google Fonts. Weight map: 300→300, 350→400,
+     400→500. Documented in the README. */
+  --font-sans:
+    'Montserrat Variable', 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+
+  /* Display script — free on Google Fonts, used as-is */
+  --font-script: 'Kaushan Script', 'Brush Script MT', cursive;
+
+  /* Guthen Bloots Personal Use is licensed for personal use only. Caveat is the closest
+     free-for-commercial handwritten face at these small eyebrow sizes. */
+  --font-hand: 'Caveat', 'Segoe Script', cursive;
+
+  /* Decorative curved text only */
+  --font-curved: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* ------------------------------------------------------------ type scale --- */
+
+  /* Figma designs at 1920px. Rather than a pile of breakpoint overrides, every step is a
+     clamp() that interpolates linearly between its 320px value and its 1920px value, so type
+     degrades continuously and no section carries a font size of its own.
+     Larger steps shrink proportionally harder — 162px scaled by a flat ratio would still
+     overflow a 320px viewport. */
+
+  --text-stat: clamp(4rem, 44.4px + 6.125vw, 10.125rem); /* 64 → 162  the giant "48" */
+  --text-stat--line-height: 1.2;
+
+  --text-display: clamp(2.125rem, 24.8px + 2.875vw, 5rem); /* 34 → 80   hero headline */
+  --text-display--line-height: 1.45;
+
+  --text-h2: clamp(1.875rem, 25.2px + 1.5vw, 3.375rem); /* 30 → 54   section headings */
+  --text-h2--line-height: 1.2;
+
+  --text-h2-cta: clamp(1.8125rem, 24.4px + 1.4375vw, 3.25rem); /* 29 → 52   final CTA */
+  --text-h2-cta--line-height: 1.19;
+
+  --text-product: clamp(1.5rem, 22.4px + 0.5vw, 2rem); /* 24 → 32   product names */
+  --text-product--line-height: 1.19;
+
+  --text-card: clamp(1.375rem, 20.4px + 0.5vw, 1.875rem); /* 22 → 30   card titles */
+  --text-card--line-height: 1.2;
+
+  --text-lead: clamp(1.125rem, 16.8px + 0.375vw, 1.5rem); /* 18 → 24   leads, body-large */
+  --text-lead--line-height: 1.46;
+
+  --text-body: clamp(1rem, 15.2px + 0.25vw, 1.25rem); /* 16 → 20   body, nav, buttons */
+  --text-body--line-height: 1.2;
+
+  --text-sm: clamp(0.9375rem, 14.4px + 0.1875vw, 1.125rem); /* 15 → 18   footer links */
+  --text-sm--line-height: 1.61;
+
+  --text-xs: clamp(0.875rem, 13.6px + 0.125vw, 1rem); /* 14 → 16   badges, captions */
+  --text-xs--line-height: 1.19;
+
+  --text-micro: clamp(0.75rem, 11.6px + 0.125vw, 0.875rem); /* 12 → 14   ALL-CAPS labels */
+  --text-micro--line-height: 1.21;
+
+  /* Line heights that differ from a step's default, named for the ratio they encode
+     (Figma stores these as absolute px against a fixed size; as ratios they survive scaling). */
+  --leading-tightest: 1.19; /* 24/29, 16/19 */
+  --leading-snug: 1.33; /* 24/32 */
+  --leading-script: 1.46; /* 24/35 — the Kaushan and Caveat blocks */
+  --leading-relaxed: 1.6; /* 20/32 */
+  --leading-loose: 1.83; /* 24/44 */
+
+  /* ------------------------------------------------------------- gradients --- */
+
+  /* All nine gradients in the file, measured. Exposed as custom properties rather than
+     utilities because each is used once or twice in a specific place. */
+  --gradient-headline: linear-gradient(
+    90deg,
+    var(--color-brand-navy) 0%,
+    var(--color-brand-purple-light) 23%,
+    var(--color-brand-purple-light) 70%,
+    var(--color-brand-navy) 100%
+  );
+  --gradient-cyan: linear-gradient(
+    90deg,
+    var(--color-brand-cyan) 0%,
+    var(--color-brand-cyan-deep) 100%
+  );
+  --gradient-pill: linear-gradient(
+    90deg,
+    var(--color-brand-cyan-dark) 0%,
+    var(--color-brand-cyan-deep) 100%
+  );
+  --gradient-cyan-fade: linear-gradient(
+    90deg,
+    var(--color-brand-cyan) 0%,
+    var(--color-brand-cyan-deep) 50%,
+    var(--color-grey-100) 100%
+  );
+  --gradient-ellipse: linear-gradient(180deg, #ffffff 0%, var(--color-brand-cyan-bright) 100%);
+
+  /* ----------------------------------------------------------- dimensions --- */
+
+  /* Figma's layout grid: 12 columns · 118px column · 24px gutter · 120px side margin.
+     1920 − (2 × 120) = 1680, so the content container caps there and full-bleed art
+     breaks out of it rather than the container growing. */
+  --spacing-content: 105rem; /* 1680px */
+  --spacing-gutter: 7.5rem; /* 120px — matches the Figma side margin */
+}
+
+@layer base {
+  html {
+    /* The page is a 15,000px scroll; in-page anchors should not slam to a stop.
+       Suppressed below for anyone who asked for reduced motion. */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Figma's Gotham 350 maps to Montserrat 400 */
+    font-weight: 400;
+  }
+
+  /* Decorative art is absolutely positioned inside clipped sections; a stray overflow at an
+     untested width would otherwise produce a horizontal scrollbar across the whole document. */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Every interactive element keeps a visible, high-contrast focus ring. Using :focus-visible
+     rather than :focus means mouse users never see it and keyboard users always do. */
+  :focus-visible {
+    outline: 3px solid var(--color-brand-cyan);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Headings inherit the sans stack by default; script and hand faces are opt-in per element. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  img,
+  picture,
+  svg,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+}
+
+/* Honoured globally rather than per-component, so a Phase 2 animation cannot forget it. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@utility text-gradient-headline {
+  /* The hero headline's fill in Figma is a four-stop linear gradient, not a solid colour.
+     `background-clip: text` is the only faithful way to render it; the solid colour underneath
+     is the fallback for engines that do not support it, so the text is never invisible. */
+  color: var(--color-brand-purple-light);
+
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    background-image: var(--gradient-headline);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}

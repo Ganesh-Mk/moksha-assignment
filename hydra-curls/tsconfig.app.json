@@ -2,7 +2,7 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "es2023",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "esnext",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
@@ -15,6 +15,18 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+
+    /* Path alias — mirrored in vite.config.ts */
+    "paths": { "@/*": ["./src/*"] },
+
+    /* Type safety. `strict` is not in the Vite template; the assignment requires it.
+       `noUncheckedIndexedAccess` is the one that actually catches bugs in this codebase:
+       every section maps over a content array, and it forces those lookups to be proven. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
 
     /* Linting */
     "noUnusedLocals": true,

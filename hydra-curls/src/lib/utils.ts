@@ -1,0 +1,11 @@
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+/**
+ * Merges conditional class names and resolves Tailwind conflicts, so a caller's
+ * `className` always wins over a component's defaults instead of depending on
+ * stylesheet order. Standard shadcn/ui helper.
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
