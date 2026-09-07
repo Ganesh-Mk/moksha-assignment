@@ -98,6 +98,12 @@ export const products: readonly Product[] = [
 /** Rendered on an SVG textPath. Stored in Figma as 48 individually rotated glyph nodes. */
 export const curvedArcText = 'Experience the power of hydration in every drop.'
 
+/**
+ * The faint decorative arc that recurs down the page. Figma stores it as 144 Inter glyph
+ * nodes spelling "Hydra Curls " twelve times over, scattered across several separate arcs.
+ */
+export const decorativeArcText = 'Hydra Curls Hydra Curls Hydra Curls'
+
 /* -------------------------------------------------------- Hydra Curls promise --- */
 
 export interface FeatureBlock {
@@ -129,6 +135,13 @@ export const promise = {
 } as const
 
 /* --------------------------------------------------------- Premium ingredients --- */
+
+export type TrustIcon = 'check' | 'heart' | 'leaf'
+
+export interface TrustBadge {
+  readonly label: string
+  readonly icon: TrustIcon
+}
 
 export interface Ingredient {
   readonly name: string
@@ -169,7 +182,17 @@ export const ingredients = {
       chips: ['Curl Definition', 'Softness', 'Nutrient Rich'],
     },
   ] as readonly Ingredient[],
-  trustBadges: ['No SLS', 'No Silicones', 'No Parabens', 'Cruelty Free', 'Natural Extracts'],
+  /**
+   * All five ticks are #34C759 in Figma, but the glyphs differ — three `charm:circle-tick`,
+   * then `solar:heart-linear` and `tabler:leaf`, matched here to their lucide equivalents.
+   */
+  trustBadges: [
+    { label: 'No SLS', icon: 'check' },
+    { label: 'No Silicones', icon: 'check' },
+    { label: 'No Parabens', icon: 'check' },
+    { label: 'Cruelty Free', icon: 'heart' },
+    { label: 'Natural Extracts', icon: 'leaf' },
+  ] as readonly TrustBadge[],
 } as const
 
 /* ------------------------------------------------------------------ Testimonials --- */
