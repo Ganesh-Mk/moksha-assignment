@@ -4,92 +4,71 @@
 > next session recovers.
 
 ## Status
-**Phase 0 — planned, awaiting go-ahead to scaffold.** Nothing written to `backend/` or `frontend/`
-yet.
-
-## Done
-- **2026-09-07 (admin session)** — requirements distilled (`../docs/ASSIGNMENT_BRIEF.md`), stack
-  chosen (`PLAN.md`), data model and business rules designed, phases 0→10 sequenced.
-- **2026-09-07 (implementer)** — read `CLAUDE.md`, `PLAN.md`, `../docs/ASSIGNMENT_BRIEF.md`.
-  Wrote `docs/DECISIONS.md` (D-001…D-014). Phase 0 plan drafted and presented for approval.
-
-## Next
-1. Get go-ahead on the Phase 0 plan (folder tree, dependency list, docker-compose).
-2. Scaffold Phase 0: compose file (Postgres 16 + API), FastAPI app factory, `config.py` with
-   fail-loud validation, async SQLAlchemy engine/session, Alembic init, `/health`, structured
-   logging + correlation-id middleware, CORS.
-3. Verify: `docker compose up` → `/health` 200, `/docs` renders, `alembic upgrade head` on an empty
-   DB succeeds.
+**Phases 0–6 complete and pushed.** Backend is done: 191 tests green, every integration verified
+against its real third-party service. Phase 7 (frontend) is next.
 
 ## Phase checklist
-- [ ] 0. Foundation
-- [ ] 1. Data model + seed
-- [ ] 2. Auth (Google OAuth → JWT, RBAC)  ← highest-weight requirement
-- [ ] 3. Products API
-- [ ] 4. Orders + business logic
-- [ ] 5. Stripe + idempotent webhook
-- [ ] 6. LangGraph agent
+- [x] 0. Foundation — compose, fail-loud config, async SQLAlchemy, Alembic, `/health`, correlation IDs
+- [x] 1. Data model + idempotent seed (12 products, 2 demo accounts)
+- [x] 2. Auth — Google JWKS verification → our JWT, customer/admin RBAC
+- [x] 3. Products API — public reads, admin writes, soft delete
+- [x] 4. Orders — server-authoritative totals, `FOR UPDATE` stock, ownership, state machine
+- [x] 5. Stripe — Checkout + signature-verified idempotent webhook
+- [x] 6. LangGraph agent — tools over services, identity outside the model's reach, SSE, rate limit
 - [ ] 7. Frontend
-- [ ] 8. Tests (authz suite)
-- [ ] 9. Docs (schema, API, system design)
-- [ ] 10. Deploy
+- [ ] 8. Tests — final sweep, coverage of anything Phase 7 adds
+- [ ] 9. Docs — DATABASE_SCHEMA, API, SYSTEM_DESIGN, READMEs
+- [ ] 10. Deploy (needs the user's Neon / Render / Vercel accounts)
 
 ## Deliverables checklist
-- [ ] GitHub repository, clean history
-- [ ] Live/demo URL (web + API `/docs`)
-- [ ] README with setup
+- [x] GitHub repository, clean history — `github.com/Ganesh-Mk/moksha-assignment`
+- [ ] Live/demo URL
+- [ ] README
 - [ ] Database schema doc
 - [ ] API documentation
 - [ ] One-page system design + scaling answer
 - [ ] Total time taken
 - [ ] AI tools used
 
-## Decisions
-Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md). Index:
+## What is verified, and how
 
-| ID | Decision |
+| Claim | Evidence |
 |---|---|
-| D-001 | PostgreSQL over MongoDB |
-| D-002 | LangGraph over a LangChain agent executor |
-| D-003 | Agent tools call services, not HTTP |
-| D-004 | Money as integer cents |
-| D-005 | `stripe_events` idempotency ledger |
-| D-006 | Snapshot price + name onto `order_items` |
-| D-007 | 404 not 403 for another user's order |
-| D-008 | Agent identity from graph state, not tool arguments |
-| D-009 | Stock decrement under `SELECT … FOR UPDATE` |
-| D-010 | Success page polls; the redirect proves nothing |
-| D-011 | Own JWT issued after verifying Google's ID token |
-| D-012 | Zustand for cart, TanStack Query for server state |
-| D-013 | Hand-built token-driven design system, not stock shadcn |
-| D-014 | `prefers-reduced-motion` handled at the token layer |
+| Oversell is impossible | Commented out `.with_for_update()` and re-ran: 5 concurrent buyers took **3** units from a stock of 2 and the tests failed. Restored → exactly 2 win. The test is not vacuous. |
+| Stripe signatures are really checked | Real `stripe listen` session; the CLI's own deliveries verified and answered 200. |
+| The webhook is idempotent | Stripe's CLI redelivered two events unprompted; both logged `webhook_duplicate_ignored`. Proven by Stripe's real retry behaviour, not a simulated one. |
+| Full payment round-trip | Real order (stock 63→61) → real Checkout session built from DB prices → expired it → genuine signed `checkout.session.expired` → order cancelled, stock released (61→63). |
+| The agent uses real data | Live Anthropic call answered all three of the brief's questions from database rows; listed 11 products, correctly omitting the 1 deactivated one. |
+| The agent resists prompt injection | Four real attacks against the live model (admin-mode, fake SYSTEM UPDATE, authority claim, identity claim) — none reached another customer's order. |
+| Migrations are reversible | Two full `upgrade`/`downgrade` cycles after adding the ENUM drops autogenerate omits. |
+| Every route's authz is declared | `test_authz.py` reads the OpenAPI document and fails if any route is unclassified — it has already caught the payments and chat routes as they were added. |
 
-## Blocked / waiting on the user
-Nothing blocks Phase 0 or 1 — local Postgres comes from docker-compose.
+## Architecture, in one paragraph
+Routers do HTTP. Services own every business rule. The agent's tools import the same service
+functions the routers call, so a rule is enforced once and holds for both — the AI cannot bypass a
+rule because there is no second code path to bypass it through. Domain exceptions map to HTTP in a
+single handler, so services never import `HTTPException` and stay callable from the agent.
 
-| Key | Needed by phase | Status |
-|---|---|---|
-| `GOOGLE_CLIENT_ID` | 2 — Auth | pending |
-| `GOOGLE_CLIENT_SECRET` | 2 — Auth (only if we add a server-side code exchange; ID-token flow does not need it) | pending |
-| `STRIPE_SECRET_KEY` · `STRIPE_PUBLISHABLE_KEY` | 5 — Payments | pending |
-| `STRIPE_WEBHOOK_SECRET` | 5 — Payments (from `stripe listen`) | pending |
-| `ANTHROPIC_API_KEY` | 6 — Agent | pending |
-| Neon `DATABASE_URL` | 10 — Deploy | pending |
-| GitHub repo (`gh` not installed) | 10 — Deploy | user handles |
+## Decisions
+Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-001 … D-014).
 
-Until each arrives, the code is written and committed behind its interface, and `config.py` fails
-at startup naming the missing variable rather than degrading silently.
+## Local environment notes (not deliverables, but the next session will hit these)
+- **Docker Desktop's WSL backend is broken on this machine** (`wslexec … exit status 0xc00000fd`),
+  and repairing it would mean discarding a 14 GB `docker_data.vhdx` that is the user's. Development
+  therefore runs against a *private* Postgres cluster created by `scripts/pg-local.ps1` — its own
+  data directory, port 55432, no impact on the machine's Postgres 18 service. `docker-compose.yml`
+  remains the documented path and still needs one verification run (see VERIFICATION_PENDING).
+- **`uvicorn app.main:app` does not work on Windows.** uvicorn builds its loop from a factory
+  hardcoded to `ProactorEventLoop`, which psycopg's async mode cannot use; `/health` works and every
+  database route 500s. Use `python run.py`. Linux and the Docker image are unaffected.
+- Local overrides live in `backend/.env.local` (gitignored), not the shared root `.env`.
 
-## Notes & surprises
-- `.env.example` lists `DATABASE_URL` with the `postgresql+psycopg` driver. That is compatible with
-  `create_async_engine` (psycopg 3 speaks both sync and async), so no root-file change is needed —
-  and using one driver for both the app and Alembic is simpler than pairing asyncpg with psycopg2.
-  Keeping it.
-- The oversell test needs real `SELECT … FOR UPDATE`, which SQLite does not implement. The test
-  suite must therefore run against a real Postgres — compose exposes a `moksha_test` database for
-  exactly this.
+## Open items for the user
+- `ADMIN_EMAILS` is **not** in the root `.env` (only in `.env.example`). It is set in
+  `backend/.env.local` for local work, but the deployment will need it or nobody gets admin.
+- Deploy accounts: Neon, Render, Vercel.
 
 ## Time log
-| Date | Phase | Hours |
+| Date | Phases | Notes |
 |---|---|---|
-| 2026-09-07 | Reading brief, decisions, Phase 0 plan | in progress |
+| 2026-09-07 | 0–6 (backend complete) | Google, Stripe and Anthropic credentials all arrived mid-build; every integration verified live |
