@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/copy-fonts.mjs && tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-ssr && node scripts/prerender.mjs",
     "preview": "vite preview",
     "lint": "oxlint",
     "typecheck": "tsc -b --noEmit",
@@ -14,10 +14,11 @@
     "images": "node scripts/optimize-images.mjs",
     "figma:extract": "node scripts/figma-extract.mjs",
     "figma:geometry": "node scripts/figma-geometry.mjs",
-    "figma:slices": "python scripts/slice_reference.py"
+    "figma:slices": "python scripts/slice_reference.py",
+    "fonts": "node scripts/copy-fonts.mjs",
+    "predev": "node scripts/copy-fonts.mjs"
   },
   "dependencies": {
-    "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/montserrat": "^5.3.0",
     "@fontsource/caveat": "^5.3.0",
     "@fontsource/kaushan-script": "^5.3.0",

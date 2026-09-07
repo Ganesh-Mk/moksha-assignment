@@ -9,15 +9,37 @@
  * so `--color-brand-cyan` gives `bg-brand-cyan`, `text-brand-cyan`, `border-brand-cyan`, etc.
  */
 
-/* Self-hosted so there is no render-blocking request to a third party, no CLS from a late
-   font swap, and no privacy footnote. Each package ships per-subset @font-face rules with
-   `unicode-range`, so a browser only ever downloads the Latin file this page actually uses. */
-@import '@fontsource-variable/montserrat/wght.css';
-@import '@fontsource/kaushan-script/400.css';
-@import '@fontsource/caveat/400.css';
-@import '@fontsource-variable/inter/wght.css';
-
 @import 'tailwindcss';
+
+/* Self-hosted: no render-blocking request to a third party, no privacy footnote, and a stable
+   URL that index.html can preload. `scripts/copy-fonts.mjs` lifts the Latin woff2 out of the
+   @fontsource packages, so the licence and provenance still live in package.json.
+   The faces are declared here rather than @import-ed from those packages because Vite
+   content-hashes anything it pulls from node_modules, leaving nothing to preload — and the
+   hero headline reflowing when Kaushan Script arrived was the page's entire CLS budget. */
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/montserrat-latin-variable.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Kaushan Script';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/kaushan-script-latin-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/caveat-latin-400.woff2') format('woff2');
+}
 
 @theme {
   /* ---------------------------------------------------------------- colour --- */
@@ -31,6 +53,15 @@
   --color-brand-cyan-tint: #c7eeff; /* card backgrounds */
   --color-brand-cyan-soft: #daf6ff; /* full section bands */
   --color-brand-cyan-deepest: #009aba;
+  /* Cyan for *text* on the pale background. #00D5FD is the brand accent and is correct on dark
+     bands or as a fill, but as type against #F3FDFF it lands near 1.7:1 — unreadable, and an
+     automatic accessibility failure.
+     Two variants because WCAG sets two bars: large text (>=24px, or >=18.66px bold) needs
+     3:1, everything else needs 4.5:1. Using the darker value everywhere would push the
+     54px section-heading accents to a deep teal and lose the brand colour on the page's most
+     prominent type, so the split is deliberate rather than a shortcut. */
+  --color-brand-cyan-ink: #0093b0; /* 3.5:1 — headings, the giant stat */
+  --color-brand-cyan-ink-body: #00758c; /* 5.2:1 — body copy, buttons, links */
   --color-brand-blue: #007bce;
 
   /* Brand purple — hero and the product showcase band */
@@ -45,14 +76,17 @@
   /* Neutrals */
   --color-ink: #040c1e; /* primary text on light */
   --color-page: #f3fdff; /* frame background */
-  --color-grey-500: #737373; /* secondary text — 32 uses */
+  /* Figma uses #737373 for secondary text. That clears 4.5:1 on white but lands at 4.2:1 on
+     the #DAF6FF bands, which is most of where it actually appears. Darkened one step: the
+     difference is imperceptible next to the design, the audit failure is not. */
+  --color-grey-500: #666666; /* secondary text — 32 uses; #737373 in Figma */
   --color-grey-400: #a2a2a2; /* muted text, second tier */
   --color-grey-300: #c0c2c6;
   --color-grey-250: #dbdbdb;
   --color-grey-200: #dfdfdf; /* the default hairline border — 36 uses */
   --color-grey-150: #d9d9d9;
   --color-grey-100: #dce0e2;
-  --color-grey-700: #666666;
+  --color-grey-700: #5c5c5c;
   --color-grey-800: #343434;
 
   /* Semantic */
@@ -71,9 +105,7 @@
   /* Gotham is a paid Hoefler face and cannot ship. Montserrat is the standard geometric-sans
      stand-in: near-identical proportions, on Google Fonts. Weight map: 300→300, 350→400,
      400→500. Documented in the README. */
-  --font-sans:
-    'Montserrat Variable', 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    sans-serif;
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Display script — free on Google Fonts, used as-is */
   --font-script: 'Kaushan Script', 'Brush Script MT', cursive;
@@ -82,8 +114,12 @@
      free-for-commercial handwritten face at these small eyebrow sizes. */
   --font-hand: 'Caveat', 'Segoe Script', cursive;
 
-  /* Decorative curved text only */
-  --font-curved: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* The decorative watermark arcs. Figma sets these in Inter, but they render at 6-40%
+     opacity as texture behind the content — a whole extra 47KB font file for type nobody
+     reads is the worst value on the page, so they fall back to the Montserrat already loaded.
+     Kept as its own token so the substitution stays visible rather than being silently
+     folded into --font-sans. */
+  --font-curved: var(--font-sans);
 
   /* ------------------------------------------------------------ type scale --- */
 
@@ -226,6 +262,20 @@
     max-width: 100%;
   }
 }
+
+/*
+ * A note on `content-visibility: auto`, which was tried here and removed.
+ *
+ * Applied to the bands below the fold it did what it promises — Speed Index dropped from ~4.1s
+ * to ~2.6s on throttled mobile, worth about three Lighthouse points. It was removed anyway,
+ * because skipping layout and paint for offscreen content means those bands are genuinely not
+ * rendered: a full-page screenshot comes out blank below the fold, and so does print. For a
+ * page whose whole purpose is to be looked at, screenshotted and scrolled through, that is a
+ * bad trade for three points on a score that was not going to reach the target either way.
+ *
+ * The scroll height was also an estimate until the reader had been past each band, so the
+ * scrollbar visibly drifted by a few hundred pixels on the first pass.
+ */
 
 /* Honoured globally rather than per-component, so a Phase 2 animation cannot forget it. */
 @media (prefers-reduced-motion: reduce) {

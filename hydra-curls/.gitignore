@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 screenshots/
+
+# Raw Figma extraction: 77MB of build input, regenerable with scripts/figma-extract.mjs.
+# Kept out of public/ because Vite copies publicDir verbatim into dist — leaving it there put
+# 77MB of unserved PNGs into every deploy. What ships is public/assets/optimized/.
+assets-src/
+public/fonts/

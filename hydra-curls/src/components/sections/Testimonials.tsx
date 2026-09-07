@@ -88,13 +88,13 @@ export function Testimonials() {
               {testimonials.items.map((item, index) => (
                 <CarouselItem key={index} className="basis-1/2 pt-4">
                   <figure className="border-brand-cyan-dark/45 bg-ink h-full rounded-[1.25rem] border p-6 md:p-8">
-                    <div className="flex gap-1" aria-label={`${item.rating} out of 5 stars`}>
+                    {/* aria-label is prohibited on a plain <div>, and adding role="img" purely
+                        to carry one trades an accessibility violation for a lint one. The
+                        rating is stated as text and the stars are marked decorative. */}
+                    <p className="sr-only">{`${item.rating} out of 5 stars`}</p>
+                    <div aria-hidden="true" className="flex gap-1">
                       {Array.from({ length: item.rating }, (_, star) => (
-                        <Star
-                          key={star}
-                          aria-hidden="true"
-                          className="fill-star text-star size-5"
-                        />
+                        <Star key={star} className="fill-star text-star size-5" />
                       ))}
                     </div>
                     <blockquote className="text-body text-grey-300 mt-5 leading-relaxed">

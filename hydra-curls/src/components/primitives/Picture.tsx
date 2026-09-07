@@ -60,7 +60,10 @@ export function Picture({
         width={manifest.width}
         height={manifest.height}
         loading={priority ? 'eager' : 'lazy'}
-        decoding={priority ? 'sync' : 'async'}
+        // Even the priority image decodes asynchronously. `sync` forces the browser to finish
+        // decoding before it can paint anything, and an AVIF of this size on a throttled phone
+        // turns that into a measurable delay to the largest contentful paint.
+        decoding="async"
         // `fetchPriority` promotes the LCP image ahead of the rest of the waterfall.
         fetchPriority={priority ? 'high' : 'auto'}
         className={cn('h-auto w-full', imgClassName)}

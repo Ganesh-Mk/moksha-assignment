@@ -16,6 +16,11 @@ import { Testimonials } from '@/components/sections/Testimonials'
 /**
  * The page, in Figma's y order. Every band is a section component composed from primitives;
  * this file is only the running order.
+ *
+ * Nothing here is code-split on purpose. The build prerenders this tree to static HTML
+ * (scripts/prerender.mjs), so a lazy boundary would put a placeholder into that HTML and
+ * then shift the layout when its chunk arrived — trading script weight for layout shift,
+ * which is not a win.
  */
 export default function App() {
   return (

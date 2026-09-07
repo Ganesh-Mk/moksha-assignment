@@ -33,7 +33,9 @@ export function SectionHeading({
   accent = 'cyan',
   as: Tag = 'h2',
 }: SectionHeadingProps) {
-  const accentClass = accent === 'cyan' ? 'text-brand-cyan' : 'text-white'
+  // Section headings always sit on a light band, so the cyan accent uses the readable
+  // variant; `white` is for the one heading that sits on cyan itself.
+  const accentClass = accent === 'cyan' ? 'text-brand-cyan-ink' : 'text-white'
 
   return (
     // `text-wrap: normal` overrides the base `balance` on headings: the designed line breaks

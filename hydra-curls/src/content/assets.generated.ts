@@ -44,22 +44,18 @@ export const ASSETS = {
       1920: '/assets/optimized/hero-background-1920.webp',
     },
     fallback: '/assets/optimized/hero-background.png',
-    alt: '',
+    alt: "",
   },
   'pattern-waves-tan': {
     width: 2000,
     height: 1333,
-    widths: [320, 480, 640, 768, 960, 1280, 1600, 1920, 2000],
+    widths: [320, 480, 640, 768, 960],
     avif: {
       320: '/assets/optimized/pattern-waves-tan-320.avif',
       480: '/assets/optimized/pattern-waves-tan-480.avif',
       640: '/assets/optimized/pattern-waves-tan-640.avif',
       768: '/assets/optimized/pattern-waves-tan-768.avif',
       960: '/assets/optimized/pattern-waves-tan-960.avif',
-      1280: '/assets/optimized/pattern-waves-tan-1280.avif',
-      1600: '/assets/optimized/pattern-waves-tan-1600.avif',
-      1920: '/assets/optimized/pattern-waves-tan-1920.avif',
-      2000: '/assets/optimized/pattern-waves-tan-2000.avif',
     },
     webp: {
       320: '/assets/optimized/pattern-waves-tan-320.webp',
@@ -67,13 +63,9 @@ export const ASSETS = {
       640: '/assets/optimized/pattern-waves-tan-640.webp',
       768: '/assets/optimized/pattern-waves-tan-768.webp',
       960: '/assets/optimized/pattern-waves-tan-960.webp',
-      1280: '/assets/optimized/pattern-waves-tan-1280.webp',
-      1600: '/assets/optimized/pattern-waves-tan-1600.webp',
-      1920: '/assets/optimized/pattern-waves-tan-1920.webp',
-      2000: '/assets/optimized/pattern-waves-tan-2000.webp',
     },
     fallback: '/assets/optimized/pattern-waves-tan.png',
-    alt: '',
+    alt: "",
   },
   'palm-leaf': {
     width: 2500,
@@ -102,7 +94,7 @@ export const ASSETS = {
       2500: '/assets/optimized/palm-leaf-2500.webp',
     },
     fallback: '/assets/optimized/palm-leaf.png',
-    alt: '',
+    alt: "",
   },
   'bottle-shampoo-hero': {
     width: 1024,
@@ -125,7 +117,7 @@ export const ASSETS = {
       1024: '/assets/optimized/bottle-shampoo-hero-1024.webp',
     },
     fallback: '/assets/optimized/bottle-shampoo-hero.png',
-    alt: 'Hydra Curls Hydrating Shampoo bottle',
+    alt: "Hydra Curls Hydrating Shampoo bottle",
   },
   'water-splash': {
     width: 2000,
@@ -154,7 +146,7 @@ export const ASSETS = {
       2000: '/assets/optimized/water-splash-2000.webp',
     },
     fallback: '/assets/optimized/water-splash.png',
-    alt: '',
+    alt: "",
   },
   'brand-key-visual': {
     width: 3951,
@@ -183,22 +175,18 @@ export const ASSETS = {
       2560: '/assets/optimized/brand-key-visual-2560.webp',
     },
     fallback: '/assets/optimized/brand-key-visual.jpg',
-    alt: 'Hydra Curls range — shampoo, conditioner, gel, cream and mask with hyaluron, coconut and avocado',
+    alt: "Hydra Curls range — shampoo, conditioner, gel, cream and mask with hyaluron, coconut and avocado",
   },
   'pattern-waves-grey': {
     width: 2000,
     height: 1333,
-    widths: [320, 480, 640, 768, 960, 1280, 1600, 1920, 2000],
+    widths: [320, 480, 640, 768, 960],
     avif: {
       320: '/assets/optimized/pattern-waves-grey-320.avif',
       480: '/assets/optimized/pattern-waves-grey-480.avif',
       640: '/assets/optimized/pattern-waves-grey-640.avif',
       768: '/assets/optimized/pattern-waves-grey-768.avif',
       960: '/assets/optimized/pattern-waves-grey-960.avif',
-      1280: '/assets/optimized/pattern-waves-grey-1280.avif',
-      1600: '/assets/optimized/pattern-waves-grey-1600.avif',
-      1920: '/assets/optimized/pattern-waves-grey-1920.avif',
-      2000: '/assets/optimized/pattern-waves-grey-2000.avif',
     },
     webp: {
       320: '/assets/optimized/pattern-waves-grey-320.webp',
@@ -206,15 +194,11 @@ export const ASSETS = {
       640: '/assets/optimized/pattern-waves-grey-640.webp',
       768: '/assets/optimized/pattern-waves-grey-768.webp',
       960: '/assets/optimized/pattern-waves-grey-960.webp',
-      1280: '/assets/optimized/pattern-waves-grey-1280.webp',
-      1600: '/assets/optimized/pattern-waves-grey-1600.webp',
-      1920: '/assets/optimized/pattern-waves-grey-1920.webp',
-      2000: '/assets/optimized/pattern-waves-grey-2000.webp',
     },
     fallback: '/assets/optimized/pattern-waves-grey.png',
-    alt: '',
+    alt: "",
   },
-  comb: {
+  'comb': {
     width: 720,
     height: 960,
     widths: [320, 480, 640, 720],
@@ -231,7 +215,7 @@ export const ASSETS = {
       720: '/assets/optimized/comb-720.webp',
     },
     fallback: '/assets/optimized/comb.png',
-    alt: '',
+    alt: "",
   },
   'bottle-conditioner-card': {
     width: 1024,
@@ -254,9 +238,9 @@ export const ASSETS = {
       1024: '/assets/optimized/bottle-conditioner-card-1024.webp',
     },
     fallback: '/assets/optimized/bottle-conditioner-card.png',
-    alt: 'Hydra Curls Hydrating Conditioner bottle',
+    alt: "Hydra Curls Hydrating Conditioner bottle",
   },
-  clouds: {
+  'clouds': {
     width: 4096,
     height: 2341,
     widths: [320, 480, 640, 768, 960, 1280, 1600, 1920, 2560],
@@ -283,7 +267,7 @@ export const ASSETS = {
       2560: '/assets/optimized/clouds-2560.webp',
     },
     fallback: '/assets/optimized/clouds.png',
-    alt: '',
+    alt: "",
   },
   'product-shampoo': {
     width: 1445,
@@ -308,7 +292,7 @@ export const ASSETS = {
       1445: '/assets/optimized/product-shampoo-1445.webp',
     },
     fallback: '/assets/optimized/product-shampoo.png',
-    alt: 'Hydra Curls Hydrating Shampoo',
+    alt: "Hydra Curls Hydrating Shampoo",
   },
   'product-conditioner': {
     width: 1531,
@@ -333,7 +317,7 @@ export const ASSETS = {
       1531: '/assets/optimized/product-conditioner-1531.webp',
     },
     fallback: '/assets/optimized/product-conditioner.png',
-    alt: 'Hydra Curls Hydrating Conditioner',
+    alt: "Hydra Curls Hydrating Conditioner",
   },
   'product-gel': {
     width: 1299,
@@ -358,7 +342,7 @@ export const ASSETS = {
       1299: '/assets/optimized/product-gel-1299.webp',
     },
     fallback: '/assets/optimized/product-gel.png',
-    alt: 'Hydra Curls Defining Gel',
+    alt: "Hydra Curls Defining Gel",
   },
   'product-cream': {
     width: 1731,
@@ -385,7 +369,7 @@ export const ASSETS = {
       1731: '/assets/optimized/product-cream-1731.webp',
     },
     fallback: '/assets/optimized/product-cream.png',
-    alt: 'Hydra Curls Defining Cream',
+    alt: "Hydra Curls Defining Cream",
   },
   'product-mask': {
     width: 1908,
@@ -412,7 +396,7 @@ export const ASSETS = {
       1908: '/assets/optimized/product-mask-1908.webp',
     },
     fallback: '/assets/optimized/product-mask.png',
-    alt: 'Hydra Curls Hydrating Mask',
+    alt: "Hydra Curls Hydrating Mask",
   },
   'icon-arc': {
     width: 150,
@@ -425,7 +409,7 @@ export const ASSETS = {
       150: '/assets/optimized/icon-arc-150.webp',
     },
     fallback: '/assets/optimized/icon-arc.png',
-    alt: '',
+    alt: "",
   },
   'icon-clock': {
     width: 150,
@@ -438,7 +422,7 @@ export const ASSETS = {
       150: '/assets/optimized/icon-clock-150.webp',
     },
     fallback: '/assets/optimized/icon-clock.png',
-    alt: '',
+    alt: "",
   },
   'ingredient-hyaluronic': {
     width: 1080,
@@ -461,7 +445,7 @@ export const ASSETS = {
       1080: '/assets/optimized/ingredient-hyaluronic-1080.webp',
     },
     fallback: '/assets/optimized/ingredient-hyaluronic.png',
-    alt: '',
+    alt: "",
   },
   'ingredient-coconut': {
     width: 1080,
@@ -484,7 +468,7 @@ export const ASSETS = {
       1080: '/assets/optimized/ingredient-coconut-1080.webp',
     },
     fallback: '/assets/optimized/ingredient-coconut.png',
-    alt: '',
+    alt: "",
   },
   'ingredient-avocado': {
     width: 1080,
@@ -507,7 +491,7 @@ export const ASSETS = {
       1080: '/assets/optimized/ingredient-avocado-1080.webp',
     },
     fallback: '/assets/optimized/ingredient-avocado.png',
-    alt: '',
+    alt: "",
   },
   'icon-hydration': {
     width: 150,
@@ -520,7 +504,7 @@ export const ASSETS = {
       150: '/assets/optimized/icon-hydration-150.webp',
     },
     fallback: '/assets/optimized/icon-hydration.png',
-    alt: '',
+    alt: "",
   },
   'icon-palm': {
     width: 150,
@@ -533,7 +517,7 @@ export const ASSETS = {
       150: '/assets/optimized/icon-palm-150.webp',
     },
     fallback: '/assets/optimized/icon-palm.png',
-    alt: '',
+    alt: "",
   },
   'icon-avocado': {
     width: 150,
@@ -546,7 +530,7 @@ export const ASSETS = {
       150: '/assets/optimized/icon-avocado-150.webp',
     },
     fallback: '/assets/optimized/icon-avocado.png',
-    alt: '',
+    alt: "",
   },
   'testimonial-model': {
     width: 1024,
@@ -569,7 +553,7 @@ export const ASSETS = {
       1024: '/assets/optimized/testimonial-model-1024.webp',
     },
     fallback: '/assets/optimized/testimonial-model.png',
-    alt: '',
+    alt: "",
   },
   'decor-wave': {
     width: 150,
@@ -582,7 +566,7 @@ export const ASSETS = {
       150: '/assets/optimized/decor-wave-150.webp',
     },
     fallback: '/assets/optimized/decor-wave.png',
-    alt: '',
+    alt: "",
   },
   'avatar-aisha': {
     width: 1024,
@@ -605,7 +589,7 @@ export const ASSETS = {
       1024: '/assets/optimized/avatar-aisha-1024.webp',
     },
     fallback: '/assets/optimized/avatar-aisha.jpg',
-    alt: '',
+    alt: "",
   },
   'expert-1': {
     width: 720,
@@ -624,7 +608,7 @@ export const ASSETS = {
       720: '/assets/optimized/expert-1-720.webp',
     },
     fallback: '/assets/optimized/expert-1.png',
-    alt: 'Curly hair transformation shared by a customer',
+    alt: "Curly hair transformation shared by a customer",
   },
   'expert-2': {
     width: 720,
@@ -643,7 +627,7 @@ export const ASSETS = {
       720: '/assets/optimized/expert-2-720.webp',
     },
     fallback: '/assets/optimized/expert-2.png',
-    alt: 'Curly hair styling result shared by a customer',
+    alt: "Curly hair styling result shared by a customer",
   },
   'expert-3': {
     width: 720,
@@ -662,7 +646,7 @@ export const ASSETS = {
       720: '/assets/optimized/expert-3-720.webp',
     },
     fallback: '/assets/optimized/expert-3.png',
-    alt: 'Defined curls after using Hydra Curls',
+    alt: "Defined curls after using Hydra Curls",
   },
   'expert-4': {
     width: 720,
@@ -681,7 +665,7 @@ export const ASSETS = {
       720: '/assets/optimized/expert-4-720.webp',
     },
     fallback: '/assets/optimized/expert-4.png',
-    alt: 'Customer showing her curl routine',
+    alt: "Customer showing her curl routine",
   },
   'logo-lockup': {
     width: 1187,
@@ -704,7 +688,7 @@ export const ASSETS = {
       1187: '/assets/optimized/logo-lockup-1187.webp',
     },
     fallback: '/assets/optimized/logo-lockup.png',
-    alt: 'Parachute Advanced Hydra Curls',
+    alt: "Parachute Advanced Hydra Curls",
   },
   'hairtype-wavy': {
     width: 1080,
@@ -727,7 +711,7 @@ export const ASSETS = {
       1080: '/assets/optimized/hairtype-wavy-1080.webp',
     },
     fallback: '/assets/optimized/hairtype-wavy.jpg',
-    alt: 'Model with wavy type 2 hair',
+    alt: "Model with wavy type 2 hair",
   },
   'hairtype-curly': {
     width: 1080,
@@ -750,7 +734,7 @@ export const ASSETS = {
       1080: '/assets/optimized/hairtype-curly-1080.webp',
     },
     fallback: '/assets/optimized/hairtype-curly.jpg',
-    alt: 'Model with curly type 3 hair',
+    alt: "Model with curly type 3 hair",
   },
   'hairtype-coily': {
     width: 1080,
@@ -773,7 +757,7 @@ export const ASSETS = {
       1080: '/assets/optimized/hairtype-coily-1080.webp',
     },
     fallback: '/assets/optimized/hairtype-coily.jpg',
-    alt: 'Model with coily type 4 hair',
+    alt: "Model with coily type 4 hair",
   },
   'learn-1': {
     width: 4096,
@@ -802,7 +786,7 @@ export const ASSETS = {
       2560: '/assets/optimized/learn-1-2560.webp',
     },
     fallback: '/assets/optimized/learn-1.jpg',
-    alt: 'Woman with curly hair against a turquoise wall',
+    alt: "Woman with curly hair against a turquoise wall",
   },
   'learn-2': {
     width: 4096,
@@ -831,7 +815,7 @@ export const ASSETS = {
       2560: '/assets/optimized/learn-2-2560.webp',
     },
     fallback: '/assets/optimized/learn-2.jpg',
-    alt: 'Woman with red curls against a pink wall',
+    alt: "Woman with red curls against a pink wall",
   },
   'learn-3': {
     width: 4096,
@@ -860,7 +844,7 @@ export const ASSETS = {
       2560: '/assets/optimized/learn-3-2560.webp',
     },
     fallback: '/assets/optimized/learn-3.jpg',
-    alt: 'Woman in a hat with curly hair against an orange wall',
+    alt: "Woman in a hat with curly hair against an orange wall",
   },
   'logo-footer': {
     width: 1697,
@@ -887,9 +871,9 @@ export const ASSETS = {
       1697: '/assets/optimized/logo-footer-1697.webp',
     },
     fallback: '/assets/optimized/logo-footer.png',
-    alt: 'Parachute Advanced Hydra Curls',
+    alt: "Parachute Advanced Hydra Curls",
   },
-  wordmark: {
+  'wordmark': {
     width: 462,
     height: 372,
     widths: [320, 462],
@@ -902,7 +886,7 @@ export const ASSETS = {
       462: '/assets/optimized/wordmark-462.webp',
     },
     fallback: '/assets/optimized/wordmark.png',
-    alt: 'Hydra Curls',
+    alt: "Hydra Curls",
   },
   'logo-lockup-hero': {
     width: 1187,
@@ -925,7 +909,7 @@ export const ASSETS = {
       1187: '/assets/optimized/logo-lockup-hero-1187.webp',
     },
     fallback: '/assets/optimized/logo-lockup-hero.png',
-    alt: 'Parachute Advanced Hydra Curls',
+    alt: "Parachute Advanced Hydra Curls",
   },
 } as const satisfies Record<string, AssetRenditions>
 

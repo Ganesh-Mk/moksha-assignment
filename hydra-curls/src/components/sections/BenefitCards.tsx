@@ -49,11 +49,12 @@ export function BenefitCards() {
             )}
           >
             {/* The wavy texture sits at 2% opacity in Figma — barely perceptible, and the
-                reason these cards do not read as flat blocks of colour. */}
+                reason these cards do not read as flat blocks of colour. Dropped below `md`,
+                where it costs ~47KB on a phone to render something invisible. */}
             <Picture
               asset="pattern-waves-grey"
               alt=""
-              className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-[0.02]"
+              className="pointer-events-none absolute inset-0 -z-10 hidden h-full w-full opacity-[0.02] md:block"
               imgClassName="h-full w-full object-cover"
               sizes="50vw"
             />

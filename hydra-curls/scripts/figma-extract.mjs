@@ -13,7 +13,7 @@
  *   ../docs/figma/raw/image-refs.json       imageRef -> S3 url map
  *   ../docs/figma/reference/full-page.png   whole frame, for side-by-side diffing
  *   ../docs/figma/reference/sections/*.png  every top-level node rendered alone
- *   public/assets/figma/*.png               all image fills, ready to import
+ *   assets-src/figma/*.png                  all image fills (build input, NOT served)
  *
  * Every download is resume-safe: an existing file is skipped, so re-running after a
  * rate-limit bail picks up where it stopped rather than starting over.
@@ -33,7 +33,9 @@ const APP = resolve(__dirname, '..'); // hydra-curls
 const RAW_DIR = join(ROOT, 'docs', 'figma', 'raw');
 const REF_DIR = join(ROOT, 'docs', 'figma', 'reference');
 const SECTION_DIR = join(REF_DIR, 'sections');
-const ASSET_DIR = join(APP, 'public', 'assets', 'figma');
+// Deliberately outside public/: Vite copies everything under publicDir into the build,
+// and these 77MB of raw PNGs are an input to optimize-images.mjs, not something to serve.
+const ASSET_DIR = join(APP, 'assets-src', 'figma');
 
 const args = new Set(process.argv.slice(2));
 
@@ -221,7 +223,7 @@ async function main() {
     const ok = await pool(entries, 8, async ([ref, url]) =>
       download(url, join(ASSET_DIR, `${ref}.png`)),
     );
-    log(`     -> public/assets/figma/ (${ok} files)`);
+    log(`     -> assets-src/figma/ (${ok} files)`);
     log('     NOTE: filenames are Figma imageRefs. Cross-reference nodes.json');
     log('           (fills[].imageRef) to see where each one is used, then rename');
     log('           to something meaningful as you build each section.');

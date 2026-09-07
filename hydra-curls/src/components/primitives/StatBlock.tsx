@@ -20,7 +20,12 @@ export function StatBlock({ value, label, className, size = 'compact' }: StatBlo
     <div className={cn('text-center', className)}>
       <dt className="sr-only">{label}</dt>
       <dd
-        className={cn('text-brand-cyan font-medium', size === 'hero' ? 'text-stat' : 'text-card')}
+        className={cn(
+          'font-medium',
+          // `hero` sits on the pale promise band and needs the readable cyan; `compact` sits
+          // on the navy CTA, where the full-strength brand cyan has plenty of contrast.
+          size === 'hero' ? 'text-stat text-brand-cyan-ink' : 'text-card text-brand-cyan',
+        )}
       >
         {value}
       </dd>

@@ -15,11 +15,12 @@ const brandButton = cva(
         /** "Explore Products" — filled with the cyan gradient, white label. */
         primary: 'bg-[image:var(--gradient-cyan)] text-white hover:brightness-110',
         /** "Learn Curly Girl Method" — 1px cyan rule, cyan label. */
-        outline: 'border border-brand-cyan text-brand-cyan hover:bg-brand-cyan hover:text-white',
+        outline:
+          'border border-brand-cyan text-brand-cyan-ink-body hover:bg-brand-cyan hover:text-white',
         /** The "Learn More" pill on the benefit cards, which uses the darker gradient. */
         pill: 'bg-[image:var(--gradient-pill)] text-white hover:brightness-110',
         /** Text-only "EXPLORE NOW" on the resource cards. */
-        link: 'text-brand-cyan underline-offset-4 hover:underline',
+        link: 'text-brand-cyan-ink-body underline-offset-4 hover:underline',
       },
       size: {
         /** 58px tall in the design; the min-height also clears the 44px tap target. */

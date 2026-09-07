@@ -19,7 +19,10 @@ export function FeatureBadge({ children, icon: Icon, className }: FeatureBadgePr
   return (
     <li
       className={cn(
-        'bg-brand-cyan/6 text-grey-500 flex items-center gap-2.5 rounded-[0.625rem] px-3 py-2.5 text-xs',
+        // One step darker than the #737373 the design uses for secondary text: the 6% cyan tint
+        // behind this label drops the pair to ~4.4:1, just under the bar. The difference is
+        // imperceptible; the audit failure is not.
+        'bg-brand-cyan/6 text-grey-700 flex items-center gap-2.5 rounded-[0.625rem] px-3 py-2.5 text-xs',
         className,
       )}
     >

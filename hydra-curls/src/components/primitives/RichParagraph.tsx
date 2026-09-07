@@ -17,7 +17,7 @@ export function RichParagraph({ runs, className }: RichParagraphProps) {
   return (
     <p className={className}>
       {runs.map((run) => (
-        <span key={run.text} className={cn(run.accent && 'text-brand-cyan')}>
+        <span key={run.text} className={cn(run.accent && 'text-brand-cyan-ink-body')}>
           {run.text}
         </span>
       ))}

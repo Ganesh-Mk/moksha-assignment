@@ -19,10 +19,19 @@ import { hero, site } from '@/content/site'
  *
  * Content sits in the upper-middle of the band rather than dead centre, matching the design's
  * 299px offset from the top of a 1133px band.
+ *
+ * The min-height sits on the <section>, not on the inner column, so the band's height is known
+ * from the viewport alone. With it on the column the height depended on how the headline
+ * wrapped, which depended on the webfont — and the background image, absolutely positioned to
+ * fill the section, could not be laid out or painted until that font had loaded. That put the
+ * largest contentful paint behind font loading and cost ~0.7s on mobile.
  */
 export function Hero() {
   return (
-    <section id="top" className="bg-brand-purple relative isolate w-full overflow-hidden">
+    <section
+      id="top"
+      className="bg-brand-purple relative isolate min-h-[clamp(30rem,59vw,70.8125rem)] w-full overflow-hidden"
+    >
       <Picture
         asset="hero-background"
         alt=""
@@ -39,7 +48,7 @@ export function Hero() {
         sizes="100vw"
       />
 
-      <div className="flex min-h-[clamp(30rem,59vw,70.8125rem)] flex-col items-center px-5 pt-[14%] pb-[18%] text-center">
+      <div className="flex min-h-[inherit] flex-col items-center px-5 pt-[14%] pb-[18%] text-center">
         <Picture
           // The white-script variant, derived at build time — see DERIVED in
           // scripts/optimize-images.mjs. Figma makes it with a mask group that exports no

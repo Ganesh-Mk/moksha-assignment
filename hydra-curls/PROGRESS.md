@@ -77,6 +77,11 @@ frame — positions, fills, gradients, type styles — so section work reads fro
 than from a render.
 
 ## Blocked / waiting
+- **The `C:` drive is 100% full (0 bytes free).** This broke Node with an out-of-memory crash and
+  stops Chrome launching for Lighthouse ("Storage.getUsageAndQuota: Quota information is not
+  available"). Clearing this session's scratchpad freed only 130MB. The repo itself is on `D:`
+  (65GB free) so building and committing still work — but **the final Lighthouse numbers could not
+  be re-measured after `content-visibility` was removed.** Needs the user to free space on `C:`.
 - Nothing.
 
 ## Notes & surprises

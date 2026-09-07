@@ -36,7 +36,13 @@ export function FinalCta() {
               {finalCta.primaryCta}
               <ArrowRight aria-hidden="true" className="size-6" />
             </BrandButton>
-            <BrandButton href="#learn" variant="outline" className="border-brand-cyan-dark">
+            <BrandButton
+              href="#learn"
+              variant="outline"
+              // The outline variant defaults to the ink cyan for light bands; on this navy
+              // band that reads at 3.2:1, so it takes the bright brand cyan back.
+              className="border-brand-cyan-dark text-brand-cyan"
+            >
               {finalCta.secondaryCta}
             </BrandButton>
           </div>

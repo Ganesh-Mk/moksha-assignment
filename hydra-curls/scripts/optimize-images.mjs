@@ -34,7 +34,7 @@ import sharp from 'sharp'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const APP = resolve(__dirname, '..')
-const SRC_DIR = join(APP, 'public', 'assets', 'figma')
+const SRC_DIR = join(APP, 'assets-src', 'figma')
 const OUT_DIR = join(APP, 'public', 'assets', 'optimized')
 const MANIFEST = join(APP, 'src', 'content', 'assets.generated.ts')
 
@@ -47,7 +47,9 @@ const force = process.argv.includes('--force')
 const ASSETS = [
   // --- Hero -------------------------------------------------------------------
   { ref: '082ae4cdd5cd', name: 'hero-background', alt: '' },
-  { ref: '0b77fddd3c8a', name: 'pattern-waves-tan', alt: '' },
+  // Capped: both wavy textures render at 2% opacity, where a 1600px rendition is a
+  // quarter-megabyte of detail nobody can perceive.
+  { ref: '0b77fddd3c8a', name: 'pattern-waves-tan', alt: '', maxWidth: 960 },
 
   // --- New Launch -------------------------------------------------------------
   { skip: 'b6c13aca414f', why: 'opaque twin of palm-leaf; the leaf overlays the hero band' },
@@ -65,7 +67,7 @@ const ASSETS = [
   },
 
   // --- Benefit cards ----------------------------------------------------------
-  { ref: 'd02c9901cbe4', name: 'pattern-waves-grey', alt: '' },
+  { ref: 'd02c9901cbe4', name: 'pattern-waves-grey', alt: '', maxWidth: 960 },
   { skip: 'ec2f3f3622c1', why: 'opaque twin of comb' },
   { ref: 'ca9a362a62fe', name: 'comb', alt: '' },
   { skip: '55fc0b26b988', why: 'opaque twin of bottle-conditioner-card' },
@@ -132,6 +134,12 @@ const ASSETS = [
 /**
  * Standard width ladder. Each asset emits the subset that is no wider than its own intrinsic
  * width — upscaling only inflates bytes without adding detail.
+ *
+ * Nine rungs is more `srcset` text than it looks — each one repeats in both the AVIF and the
+ * WebP <source> of every image, and across ~55 images on a prerendered page that is real HTML
+ * weight. Trimming to five was tried and measured worse: the coarser gaps pushed phones onto a
+ * larger rendition than they needed and LCP went up ~1s. Kept dense, because the download a
+ * device actually makes matters more than the markup describing the options.
  */
 const LADDER = [320, 480, 640, 768, 960, 1280, 1600, 1920, 2560]
 
@@ -209,7 +217,12 @@ const queue = shipped.map((asset) => {
     console.error(`  ✖ no source for ${asset.name} (${asset.ref})`)
     process.exit(1)
   }
-  return { name: asset.name, alt: asset.alt, input: join(SRC_DIR, file) }
+  return {
+    name: asset.name,
+    alt: asset.alt,
+    input: join(SRC_DIR, file),
+    maxWidth: asset.maxWidth,
+  }
 })
 
 for (const derived of DERIVED) {
@@ -231,12 +244,13 @@ for (const asset of queue) {
   const meta = await image.metadata()
   const intrinsic = meta.width ?? 0
 
-  const widths = LADDER.filter((w) => w <= intrinsic)
+  const cap = Math.min(intrinsic, asset.maxWidth ?? Infinity)
+  const widths = LADDER.filter((w) => w <= cap)
   // A source narrower than the smallest ladder rung still needs one rendition.
-  if (widths.length === 0) widths.push(intrinsic)
+  if (widths.length === 0) widths.push(cap)
   // Always include the intrinsic width so the largest rendition is never a downscale
   // of an already-small asset.
-  if (!widths.includes(intrinsic) && intrinsic < LADDER[LADDER.length - 1]) widths.push(intrinsic)
+  if (!widths.includes(cap) && cap < LADDER[LADDER.length - 1]) widths.push(cap)
 
   const renditions = { avif: {}, webp: {} }
 

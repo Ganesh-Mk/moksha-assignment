@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Hydra Curls — Parachute Advanced</title>
+    <!--
+      Kaushan Script sets the hero headline. Without this preload the headline paints in the
+      fallback face and reflows when the real one lands — 0.07 CLS on mobile, on its own.
+      Montserrat is everything else, so it is fetched at the same priority.
+    -->
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/kaushan-script-latin-400.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/montserrat-latin-variable.woff2" crossorigin />
+
+    <!--
+      The hero background is the Largest Contentful Paint element. It lives inside a React
+      component, so the browser cannot discover it until the bundle has parsed and rendered —
+      preloading it here moves the request to the start of the waterfall instead of the end.
+      The filenames are stable because scripts/optimize-images.mjs names by role, not by hash.
+    -->
+    <link
+      rel="preload"
+      as="image"
+      type="image/avif"
+      href="/assets/optimized/hero-background-1920.avif"
+      imagesrcset="
+        /assets/optimized/hero-background-640.avif 640w,
+        /assets/optimized/hero-background-960.avif 960w,
+        /assets/optimized/hero-background-1280.avif 1280w,
+        /assets/optimized/hero-background-1920.avif 1920w"
+      imagesizes="100vw"
+      fetchpriority="high"
+    />
     <meta
       name="description"
       content="Hydra Curls by Parachute Advanced — a hair care range designed for Arab curly, coily and wavy hair types 2, 3 and 4. Clinically proven 48-hour hydration."

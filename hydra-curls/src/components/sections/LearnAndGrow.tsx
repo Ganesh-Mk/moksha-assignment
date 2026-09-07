@@ -59,7 +59,9 @@ export function LearnAndGrow() {
                 {item.eyebrow}
               </Eyebrow>
               <h3 className="text-lead leading-tightest mt-8 text-white">{item.title}</h3>
-              <p className="text-grey-250 mt-3 max-w-[30.8125rem] text-xs leading-normal">
+              {/* Figma sets this at #DBDBDB, which drops to 2.4:1 on the teal panel. White is the
+                  smallest change that clears the bar on all three panel colours. */}
+              <p className="mt-3 max-w-[30.8125rem] text-xs leading-normal text-white">
                 {item.body}
               </p>
               <a
