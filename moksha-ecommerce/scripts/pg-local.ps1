@@ -72,7 +72,11 @@ function Start-Cluster {
         -RedirectStandardOutput $ctlLog -RedirectStandardError "$ctlLog.err" | Out-Null
 
     # Wait for the port to actually accept a connection — the only signal that matters.
-    for ($i = 0; $i -lt 30; $i++) {
+    #
+    # 90s, not 15s: after an unclean shutdown Postgres replays the WAL before accepting anything,
+    # and during that it answers "the database system is starting up". A short timeout turns a
+    # perfectly healthy recovery into a scary error and an abandoned cluster.
+    for ($i = 0; $i -lt 180; $i++) {
         & "$Bin\pg_isready.exe" -h 127.0.0.1 -p $Port -q
         if ($LASTEXITCODE -eq 0) {
             Write-Host "PostgreSQL is accepting connections on 127.0.0.1:$Port."
@@ -80,7 +84,7 @@ function Start-Cluster {
         }
         Start-Sleep -Milliseconds 500
     }
-    throw "Cluster did not become ready within 15s. See $LogFile and $ctlLog.err"
+    throw "Cluster did not become ready within 90s. See $LogFile and $ctlLog.err"
 }
 
 function Invoke-Psql([string]$Database, [string]$Sql) {

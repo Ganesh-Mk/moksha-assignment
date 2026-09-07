@@ -31,7 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import ConfigurationError, settings
 from app.core.exceptions import (
     ConflictError,
     NotFoundError,
@@ -324,6 +324,30 @@ async def _apply_event(
 
 
 async def get_publishable_key() -> str:
-    if not settings.stripe_publishable_key:
+    """The publishable key, for the browser.
+
+    The prefix is checked before returning it, and that check is not paranoia — it caught a real
+    incident. A deploy had `STRIPE_PUBLISHABLE_KEY` set to the *secret* key, and because this
+    endpoint is public by design, the API cheerfully served a live secret key to anyone who asked.
+
+    Publishable keys start `pk_`. Secret keys start `sk_`, and restricted keys `rk_`. Anything
+    that is not `pk_` must never leave the server, so this refuses to serve it and raises a
+    configuration error naming the variable instead — the same fail-loud posture as the rest of
+    `config.py`. A misconfiguration that would have leaked a credential becomes a 503 that says
+    exactly what is wrong.
+    """
+    key = settings.stripe_publishable_key
+    if not key:
         raise NotFoundError("Stripe is not configured.")
-    return settings.stripe_publishable_key
+
+    if not key.startswith("pk_"):
+        logger.error(
+            "publishable_key_is_not_publishable",
+            extra={"prefix": key[:3]},  # the prefix only — never the key itself
+        )
+        raise ConfigurationError(
+            "Stripe publishable key",
+            [f"STRIPE_PUBLISHABLE_KEY (got a key starting '{key[:3]}', expected 'pk_')"],
+        )
+
+    return key

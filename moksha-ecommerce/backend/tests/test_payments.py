@@ -449,3 +449,55 @@ class TestConfigurationIsFailLoud:
 
         assert response.status_code == 503
         assert "STRIPE_WEBHOOK_SECRET" in response.json()["error"]["details"]["missing"]
+
+
+# Deliberately not shaped like real keys. The first version of these fixtures used a realistic
+# `sk_test_51<account>…` form and GitHub's push protection blocked the commit — correctly, since a
+# scanner cannot tell a convincing fake from the real thing. The guard under test only looks at the
+# prefix, so the rest of the string may as well announce what it is.
+_FAKE = "NOT_A_REAL_KEY_test_fixture_only"
+PUBLISHABLE_FIXTURE = f"pk_test_{_FAKE}"
+
+
+class TestPublishableKeyIsActuallyPublishable:
+    """Regression tests for a real production incident.
+
+    `STRIPE_PUBLISHABLE_KEY` was set to the *secret* key on a deploy. `/payments/config` is public
+    by design — the browser needs that key — so the API served a live secret key to anyone who
+    requested it. Nothing in the system objected, because a string is a string.
+
+    The endpoint now checks the prefix. `pk_` is publishable and safe to hand out; `sk_` (secret)
+    and `rk_` (restricted) are not and must never leave the server.
+    """
+
+    async def test_a_publishable_key_is_served(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(settings, "stripe_publishable_key", PUBLISHABLE_FIXTURE)
+
+        response = await client.get(f"{API}/payments/config")
+
+        assert response.status_code == 200
+        assert response.json()["publishable_key"] == PUBLISHABLE_FIXTURE
+
+    @pytest.mark.parametrize(
+        ("key", "kind"),
+        [
+            (f"sk_test_{_FAKE}", "secret"),
+            (f"sk_live_{_FAKE}", "live secret"),
+            (f"rk_test_{_FAKE}", "restricted"),
+            (f"whsec_{_FAKE}", "webhook signing"),
+        ],
+    )
+    async def test_a_non_publishable_key_is_never_served(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch, key: str, kind: str
+    ) -> None:
+        monkeypatch.setattr(settings, "stripe_publishable_key", key)
+
+        response = await client.get(f"{API}/payments/config")
+
+        # 503 naming the variable, not 200 with the key in the body.
+        assert response.status_code == 503, f"a {kind} key was served to an anonymous caller"
+        body = response.text
+        assert key not in body, f"the {kind} key leaked into the error response"
+        assert "STRIPE_PUBLISHABLE_KEY" in body
