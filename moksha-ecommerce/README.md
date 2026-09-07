@@ -1,0 +1,263 @@
+# Moksha — Mini AI E-Commerce
+
+Assignment 2. An e-commerce application demonstrating the full chain
+`UI → API → Database → Authentication → Business Logic → AI → Integration`.
+
+| | |
+|---|---|
+| **Live app** | _TBD — Phase 10_ |
+| **API docs** | _TBD_ `/docs` |
+| **Stack** | React 19 · TypeScript · Tailwind v4 · FastAPI · PostgreSQL 16 · LangGraph · Stripe |
+
+**Documentation:** [System design](docs/SYSTEM_DESIGN.md) · [Database schema](docs/DATABASE_SCHEMA.md)
+· [API reference](docs/API.md) · [Decisions](docs/DECISIONS.md)
+
+---
+
+## The five things worth looking at
+
+If you read nothing else, these are where the thinking is.
+
+**1 · Authorization is enforced on the server, and proved.**
+`backend/tests/test_authz.py` discovers every route from the app's own OpenAPI document and
+parametrizes over it — so a route added tomorrow is tested tomorrow, without anyone remembering to
+add a case. It asserts a customer's token gets `403` on all 8 admin routes, an admin gets through
+all 8 (a guard that refuses everyone is not a guard), anonymous callers get `401` on all 14
+protected routes, and that **no route escapes classification**.
+
+> The Admin link is hidden from customers in the navigation. **That is UX, not security.** Deleting
+> that conditional would change nothing about what a customer can do — `core/deps.py` is the
+> control, and the test suite is the proof.
+
+**2 · Two concurrent checkouts cannot oversell the last unit.**
+Stock moves under `SELECT … FOR UPDATE`, locks taken in ascending product id so opposing carts
+cannot deadlock. The test was checked against a disabled lock: with `.with_for_update()` commented
+out, five concurrent buyers take **3** units from a stock of 2 and it fails. This is also why the
+suite runs against real PostgreSQL — SQLite has no `FOR UPDATE` and would have passed either way.
+
+**3 · The Stripe webhook is signature-verified and idempotent.**
+Stripe delivers at-least-once and retries on any non-2xx. The handler inserts the event id into
+`stripe_events` *before* doing any work; a unique violation means "already handled". A naive handler
+decrements stock twice on the first retry. Verified against the real Stripe CLI — it redelivered
+two events unprompted and both were logged as duplicates.
+
+**4 · The AI agent cannot be prompt-injected into another customer's orders.**
+Order tools take **no user argument**. Identity is a closure variable bound from the verified JWT,
+so it never appears in the tool's JSON schema — and everything in that schema is filled in by the
+model, which is steered by what the customer types. There is nothing for an injected instruction to
+fill in. Four real attacks were run against the live model; the model's own reply names the reason:
+*"there's no user_id parameter, and the tools are scoped to you automatically."*
+
+**5 · The client cannot influence what it is charged.**
+The order request schema has no price field at all. The server recomputes the total from the rows it
+locks. Even the cart's own subtotal is labelled "a preview" in the UI, because the server's figure
+is the one charged.
+
+---
+
+## Running it
+
+### Option A — Docker (one command)
+
+```bash
+cp ../.env.example ../.env     # fill in your keys
+docker compose up
+```
+
+- Web → http://localhost:5173
+- API → http://localhost:8000 · docs at `/docs`
+- Postgres → `localhost:5432` (`moksha` / `moksha`)
+
+The API container runs `alembic upgrade head` on boot and waits for the database's health check
+rather than sleeping. Compose reads the repository-root `.env`, so secrets live in exactly one place
+and never appear in `docker-compose.yml`.
+
+> Not yet verified on this machine — Docker Desktop's WSL backend is broken here and repairing it
+> would mean discarding 14 GB of the user's images. See [docs/VERIFICATION_PENDING.md](docs/VERIFICATION_PENDING.md).
+> Everything below was used instead, and the application itself is fully exercised.
+
+### Option B — run the pieces directly
+
+**Database.** Either `docker compose up -d db`, or — with PostgreSQL already installed — a private
+cluster that will not touch it:
+
+```bash
+./scripts/pg-local.ps1 init     # own data dir, port 55432, own superuser
+```
+
+**Backend.**
+
+```bash
+cd backend
+python -m venv .venv && .venv/Scripts/activate   # source .venv/bin/activate on macOS/Linux
+pip install -e ".[dev]"
+alembic upgrade head
+python scripts/seed.py
+python run.py                                     # http://localhost:8000
+```
+
+> **Windows:** use `python run.py`, not `uvicorn app.main:app`. uvicorn builds its event loop from a
+> factory hardcoded to `ProactorEventLoop` on Windows, which psycopg's async mode cannot use — the
+> symptom is `/health` working while every database route 500s. `run.py` supplies the selector loop.
+> Linux and the Docker image are unaffected.
+
+**Frontend.**
+
+```bash
+cd frontend
+npm install
+npm run dev                                       # http://localhost:5173
+```
+
+> Port 5173 is not a preference. It is the only origin authorized in the Google Cloud console, so
+> sign-in fails anywhere else.
+
+**Stripe webhooks, locally.**
+
+```bash
+stripe listen --forward-to localhost:8000/api/v1/payments/webhook
+```
+
+Use the `whsec_…` the CLI prints — some versions issue a different secret per listen session than
+`--print-secret` returns.
+
+---
+
+## Environment
+
+Copy `../.env.example` to `../.env`. Nothing has a fallback: `config.py` fails loudly and names the
+variable, because a webhook verifier that quietly disables itself when its secret is missing is
+exactly the bug this project is about.
+
+| Variable | Needed by |
+|---|---|
+| `DATABASE_URL` | everything |
+| `JWT_SECRET` | session tokens — a long random string in production |
+| `GOOGLE_CLIENT_ID` | sign-in |
+| `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | payments |
+| `ANTHROPIC_API_KEY` | the support agent |
+| `ADMIN_EMAILS` | comma-separated; these addresses get the admin role on sign-in |
+| `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID` | frontend (Vite only exposes `VITE_`-prefixed vars) |
+
+A feature whose credential is absent is **disabled and says so** — `/health/db` reports it, and
+calling it returns `503` naming the variable. In production `assert_production_ready()` refuses to
+boot at all: an instance that comes up with Stripe disabled looks healthy to the load balancer and
+takes orders it cannot charge.
+
+---
+
+## Demo accounts
+
+The catalogue is browsable signed out. To place an order, sign in with Google — the app has no
+password login, so the seeded rows below are *claimed* by whichever Google account matches the
+address rather than logged into directly.
+
+| Role | Seeded as | How to become it |
+|---|---|---|
+| Customer | `demo.customer@moksha.test` | sign in with any Google account |
+| Admin | `demo.admin@moksha.test` | put your address in `ADMIN_EMAILS`, then sign in |
+
+The Google consent screen is in **testing** mode, so only allow-listed Google accounts can sign in.
+
+**Stripe test cards** — any future expiry, any CVC:
+
+| Card | Result |
+|---|---|
+| `4242 4242 4242 4242` | succeeds → order becomes `paid` via the webhook |
+| `4000 0000 0000 0002` | declined → order stays `pending_payment` |
+| `4000 0025 0000 3155` | 3-D Secure challenge, then succeeds |
+
+**Two seed rows are deliberately awkward**, so the edge cases can be seen without setting them up:
+*Curl Defining Gel* has `stock = 1` (run two checkouts at once), and *Silk Press Finishing Serum* is
+withdrawn — invisible in the catalogue, still resolvable from a past order.
+
+---
+
+## Tests
+
+```bash
+cd backend && pytest -v          # 191 tests
+cd frontend && npm test          # 20 tests
+```
+
+**The whole suite runs green with no API credentials.** Google, Stripe and Anthropic are each
+reached through a seam the production code already has, and tests substitute a fake at it — so the
+real application code path runs and only the network call is replaced.
+
+Where a fake would weaken a test, there is none:
+
+- **Stripe signatures are verified for real.** The tests compute a genuine HMAC and drive the real
+  `stripe.Webhook.construct_event` against a self-contained test secret. A stubbed verifier would
+  make "rejects an unsigned webhook" prove nothing.
+- **Our own JWTs are real.** Only *Google's* verification is faked; every token the suite issues and
+  checks is genuinely signed. An authz test using a fake token would be testing the fake.
+- **The prompt-injection tests script a model that has already been manipulated.** The stub asks for
+  the victim's order; the test asserts the service refuses anyway. That is the only guarantee worth
+  having — one that does not depend on the model resisting.
+
+| File | Covers |
+|---|---|
+| `test_authz.py` | the headline: RBAC across every discovered route, cross-customer access |
+| `test_auth.py` | JWKS verification, forged / `alg:none` / expired / tampered tokens, role assignment |
+| `test_orders.py` | server-authoritative totals, oversell under concurrency, deadlock avoidance, the state machine |
+| `test_payments.py` | signature verification, idempotency, every payment outcome |
+| `test_agent_authz.py` | prompt injection, tool schemas, the read-only guarantee, rate limiting |
+| `test_agent.py` | the brief's three questions answered from real database rows |
+| `test_models.py` | database-level invariants — constraints, snapshots, the ledger |
+| `test_health.py` | boot, readiness, correlation ids |
+
+---
+
+## Layout
+
+```
+moksha-ecommerce/
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/        routers — authenticate, validate, delegate, serialize
+│   │   ├── core/          deps.py (the security boundary), security, exceptions, logging
+│   │   ├── services/      BUSINESS LOGIC — the single source of truth
+│   │   ├── agent/         LangGraph graph, tools, prompt
+│   │   ├── models/        SQLAlchemy 2.0
+│   │   └── schemas/       Pydantic v2
+│   ├── tests/
+│   ├── scripts/seed.py
+│   └── run.py             local entrypoint (see the Windows note above)
+├── frontend/
+│   ├── src/
+│   │   ├── styles/        the token layer — every colour, size and duration
+│   │   ├── components/ui/ primitives built on those tokens
+│   │   ├── hooks/         TanStack Query wrappers, auth, SSE chat
+│   │   └── store/cart.ts  the only genuinely client-owned state
+│   └── scripts/generate-product-art.mjs
+└── docs/
+```
+
+---
+
+## AI tools used
+
+Built with **Claude Code** (Opus), used as an implementation partner rather than an autocomplete:
+architecture and trade-offs discussed first, then implemented, then verified by running things.
+
+What that meant concretely — and what it did *not* mean:
+
+- Every integration was verified against the real third party, not only against mocks. A real card
+  was charged through Stripe Checkout; four real prompt-injection attempts were run against the live
+  Anthropic model; the agent's answers were checked against actual database rows.
+- Claims in the test suite were themselves checked. The oversell test was re-run with the row lock
+  disabled to confirm it fails without it — a test that passes either way proves nothing, and that
+  is not visible from reading it.
+- Three real bugs were found by running rather than by review: the ENUM types Alembic's autogenerate
+  never drops (so `downgrade` then `upgrade` failed), uvicorn's hardcoded Windows event loop (which
+  psycopg cannot use), and stock reserved for a line in an order that had already failed.
+- The first pass at product imagery hotlinked stock photos and was thrown away: a search for twelve
+  specific haircare products returns twelve photos of *approximately* the right thing, and a
+  wide-tooth comb illustrated by a perfume bottle is worse than no photo.
+
+Every decision in `docs/DECISIONS.md` is one I can defend in a sentence, which was the bar rather
+than the volume of code produced.
+
+## Time taken
+
+_To be completed on submission._
