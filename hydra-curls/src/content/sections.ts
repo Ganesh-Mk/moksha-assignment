@@ -271,6 +271,8 @@ export interface Resource {
   readonly cta: string
   readonly image: AssetName
   readonly imageSide: 'left' | 'right'
+  /** Each row's panel takes a different brand colour: periwinkle, purple, then teal. */
+  readonly panelClassName: string
 }
 
 const RESOURCE = {
@@ -288,9 +290,19 @@ export const learn = {
   ] as readonly HeadingLine[],
   lead: 'Access expert guides, styling tips, and a community of women who celebrate their natural curls.',
   items: [
-    { ...RESOURCE, image: 'learn-1', imageSide: 'left' },
-    { ...RESOURCE, image: 'learn-2', imageSide: 'right' },
-    { ...RESOURCE, image: 'learn-3', imageSide: 'left' },
+    {
+      ...RESOURCE,
+      image: 'learn-1',
+      imageSide: 'left',
+      panelClassName: 'bg-brand-navy-soft',
+    },
+    { ...RESOURCE, image: 'learn-2', imageSide: 'right', panelClassName: 'bg-brand-purple' },
+    {
+      ...RESOURCE,
+      image: 'learn-3',
+      imageSide: 'left',
+      panelClassName: 'bg-brand-cyan-deepest',
+    },
   ] as readonly Resource[],
 } as const
 
