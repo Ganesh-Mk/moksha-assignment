@@ -1,0 +1,306 @@
+"""Seed the catalogue and the two demo accounts.
+
+**Idempotent by design.** It upserts on natural keys (`products.slug`, `users.email`) rather than
+inserting, so running it twice is a no-op and running it after a schema change refreshes the data
+in place. A seed script that can only be run against an empty database is one nobody dares run.
+
+It deliberately does *not* touch orders. Orders are created by the application, through the
+service that enforces stock and totals — fabricating them here would produce rows the business
+rules never approved, which is exactly the shortcut this project is arguing against.
+
+    python scripts/seed.py
+    python scripts/seed.py --reset-stock   # also restore stock levels after a demo run
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+# Allow `python scripts/seed.py` from the backend directory without installing the package.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.platform import apply_windows_event_loop_policy
+from app.database import SessionLocal
+from app.models import Product, User, UserRole
+
+apply_windows_event_loop_policy()
+
+
+@dataclass(frozen=True)
+class SeedProduct:
+    slug: str
+    name: str
+    category: str
+    price_cents: int
+    stock: int
+    description: str
+    image_url: str
+
+
+# Priced in paise (INR x 100). Integer cents throughout — see DECISIONS D-004.
+#
+# The range is haircare, tying the store to the Hydra Curls landing page built for Assignment 1.
+# Two of these are deliberately awkward: "Curl Defining Gel" has stock 1 so the oversell path can
+# be demonstrated live, and "Silk Press Serum" is inactive so the reviewer can see that a
+# deactivated product disappears from the catalogue while remaining on past orders.
+PRODUCTS: tuple[SeedProduct, ...] = (
+    SeedProduct(
+        slug="hydra-curls-shampoo",
+        name="Hydra Curls Hydrating Shampoo",
+        category="cleanse",
+        price_cents=49900,
+        stock=120,
+        description=(
+            "A sulphate-free cleanser that lifts build-up without stripping the natural oils "
+            "curls depend on. Coconut-derived surfactants, 300 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1631730359585-38a4935cbec4?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="hydra-curls-conditioner",
+        name="Hydra Curls Slip Conditioner",
+        category="condition",
+        price_cents=54900,
+        stock=96,
+        description=(
+            "Enough slip to detangle a full head of 3C curls with fingers alone. Cupuaçu butter "
+            "and rice protein, 300 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="deep-repair-hair-mask",
+        name="Deep Repair Weekly Mask",
+        category="treatment",
+        price_cents=89900,
+        stock=54,
+        description=(
+            "A ten-minute weekly treatment for bleached or heat-stressed hair. Hydrolysed keratin "
+            "with murumuru butter, 200 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="curl-defining-gel",
+        name="Curl Defining Gel",
+        category="style",
+        price_cents=64900,
+        # Deliberately 1: this is the product the concurrency demo buys twice at once.
+        stock=1,
+        description=(
+            "Medium hold with a cast that scrunches out soft. Flaxseed and aloe, alcohol-free, "
+            "250 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="lightweight-leave-in",
+        name="Lightweight Leave-In Cream",
+        category="style",
+        price_cents=59900,
+        stock=78,
+        description=(
+            "Daily moisture for fine curls that flatten under heavier creams. Layers cleanly "
+            "under gel, 200 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="argan-hair-oil",
+        name="Cold-Pressed Argan Hair Oil",
+        category="treatment",
+        price_cents=74900,
+        stock=63,
+        description=(
+            "Single-ingredient finishing oil for ends and frizz. Two or three drops is the whole "
+            "application, 100 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="scalp-scrub-exfoliant",
+        name="Scalp Renew Exfoliant",
+        category="cleanse",
+        price_cents=69900,
+        stock=41,
+        description=(
+            "Fortnightly scrub for product build-up at the roots. Sugar and salicylic acid, 150 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="heat-shield-spray",
+        name="Heat Shield Thermal Spray",
+        category="protect",
+        price_cents=44900,
+        stock=110,
+        description="Protection to 230 °C before blow-drying or straightening. Non-sticky, 150 ml.",
+        image_url="https://images.unsplash.com/photo-1594035910387-fea47794261f?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="satin-hair-wrap",
+        name="Satin Sleep Wrap",
+        category="accessory",
+        price_cents=129900,
+        stock=32,
+        description=(
+            "Mulberry satin wrap that keeps a wash day going three nights longer. Adjustable, "
+            "one size."
+        ),
+        image_url="https://images.unsplash.com/photo-1522338242992-e1a54906a8da?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="wide-tooth-detangling-comb",
+        name="Wide-Tooth Detangling Comb",
+        category="accessory",
+        price_cents=39900,
+        stock=145,
+        description="Seamless sandalwood comb — no moulding ridge to catch and snap wet curls.",
+        image_url="https://images.unsplash.com/photo-1595425970377-c9703cf48b6d?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="curl-refresh-mist",
+        name="Curl Refresh Mist",
+        category="style",
+        price_cents=42900,
+        stock=87,
+        description=(
+            "Day-two reviver. Rose water and glycerin to bring curl clumps back without a full "
+            "rewash, 200 ml."
+        ),
+        image_url="https://images.unsplash.com/photo-1571875257727-256c39da42af?w=800&q=80",
+    ),
+    SeedProduct(
+        slug="silk-press-serum",
+        name="Silk Press Finishing Serum",
+        category="style",
+        price_cents=79900,
+        stock=0,
+        description=(
+            "Discontinued line. Kept in the catalogue as an inactive product so past orders "
+            "still resolve their line items."
+        ),
+        image_url="https://images.unsplash.com/photo-1512207846876-bb54ef5056fe?w=800&q=80",
+    ),
+)
+
+
+@dataclass(frozen=True)
+class SeedUser:
+    email: str
+    name: str
+    google_sub: str
+    role: UserRole
+
+
+# The `google_sub` values are placeholders. Signing in with Google issues a *real* sub, and
+# `auth_service` matches on email first for exactly this reason — so the demo accounts adopt
+# their real Google identity on first sign-in rather than becoming duplicates.
+USERS: tuple[SeedUser, ...] = (
+    SeedUser(
+        email="demo.customer@moksha.test",
+        name="Demo Customer",
+        google_sub="seed-customer-000000000001",
+        role=UserRole.CUSTOMER,
+    ),
+    SeedUser(
+        email="demo.admin@moksha.test",
+        name="Demo Admin",
+        google_sub="seed-admin-000000000002",
+        role=UserRole.ADMIN,
+    ),
+)
+
+
+async def seed_products(session: AsyncSession, *, reset_stock: bool) -> tuple[int, int]:
+    created = updated = 0
+    for spec in PRODUCTS:
+        existing = (
+            await session.execute(select(Product).where(Product.slug == spec.slug))
+        ).scalar_one_or_none()
+
+        if existing is None:
+            session.add(
+                Product(
+                    slug=spec.slug,
+                    name=spec.name,
+                    category=spec.category,
+                    price_cents=spec.price_cents,
+                    stock=spec.stock,
+                    description=spec.description,
+                    image_url=spec.image_url,
+                    currency="INR",
+                    is_active=spec.slug != "silk-press-serum",
+                )
+            )
+            created += 1
+            continue
+
+        existing.name = spec.name
+        existing.category = spec.category
+        existing.price_cents = spec.price_cents
+        existing.description = spec.description
+        existing.image_url = spec.image_url
+        # Stock is left alone by default: re-running the seed after a demo must not silently
+        # restock items the demo just sold, or the oversell demonstration stops working.
+        if reset_stock:
+            existing.stock = spec.stock
+        updated += 1
+
+    return created, updated
+
+
+async def seed_users(session: AsyncSession) -> tuple[int, int]:
+    created = updated = 0
+    for spec in USERS:
+        existing = (
+            await session.execute(select(User).where(User.email == spec.email))
+        ).scalar_one_or_none()
+
+        if existing is None:
+            session.add(
+                User(
+                    email=spec.email,
+                    name=spec.name,
+                    google_sub=spec.google_sub,
+                    role=spec.role,
+                    is_active=True,
+                )
+            )
+            created += 1
+        else:
+            existing.role = spec.role
+            existing.is_active = True
+            updated += 1
+
+    return created, updated
+
+
+async def main(*, reset_stock: bool) -> None:
+    async with SessionLocal() as session:
+        products_created, products_updated = await seed_products(session, reset_stock=reset_stock)
+        users_created, users_updated = await seed_users(session)
+        await session.commit()
+
+    print(f"products: {products_created} created, {products_updated} updated")
+    print(f"users:    {users_created} created, {users_updated} updated")
+    if not reset_stock:
+        print("stock left untouched — pass --reset-stock to restore seed levels")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--reset-stock",
+        action="store_true",
+        help="Also restore every product's stock to its seed level.",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(reset_stock=args.reset_stock))
