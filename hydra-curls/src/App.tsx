@@ -1,4 +1,5 @@
 import { Navbar } from '@/components/layout/Navbar'
+import { BenefitCards } from '@/components/sections/BenefitCards'
 import { BrandKeyVisual } from '@/components/sections/BrandKeyVisual'
 import { Hero } from '@/components/sections/Hero'
 import { NewLaunch } from '@/components/sections/NewLaunch'
@@ -11,6 +12,7 @@ export default function App() {
         <Hero />
         <NewLaunch />
         <BrandKeyVisual />
+        <BenefitCards />
       </main>
     </>
   )

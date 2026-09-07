@@ -32,7 +32,7 @@
 - [x] 4. Wave divider — primitive, reused at y4273
 - [x] 5. New Launch — copy column, 3 badges, 2 CTAs, tilted bottle + splash + leaf
 - [x] 6. Brand key visual — full-bleed campaign raster, transcribed alt text
-- [ ] 7. Benefit cards
+- [x] 7. Benefit cards — two full-bleed 948px cards, 2% wavy texture, composed product lineup
 - [ ] 8. Product showcase
 - [ ] 9. Curved script arc
 - [ ] 10. Hydra Curls Promise

@@ -68,26 +68,16 @@ export interface BenefitCard {
   readonly title: string
   readonly body: string
   readonly cta: string
-  readonly image: AssetName
-  /** Which side the artwork sits on at desktop; the pair alternates in the design. */
-  readonly imageSide: 'left' | 'right'
+  /**
+   * Whether the card carries the product lineup beneath its copy. Only the right-hand card
+   * does; the left is copy alone, which is why the two are vertically aligned differently.
+   */
+  readonly showLineup: boolean
 }
 
 export const benefitCards: readonly BenefitCard[] = [
-  {
-    title: 'Lorem Ipsum',
-    body: HYALURONIC_PARAGRAPH,
-    cta: 'Learn More',
-    image: 'bottle-conditioner-card',
-    imageSide: 'right',
-  },
-  {
-    title: 'Lorem Ipsum',
-    body: HYALURONIC_PARAGRAPH,
-    cta: 'Learn More',
-    image: 'comb',
-    imageSide: 'left',
-  },
+  { title: 'Lorem Ipsum', body: HYALURONIC_PARAGRAPH, cta: 'Learn More', showLineup: false },
+  { title: 'Lorem Ipsum', body: HYALURONIC_PARAGRAPH, cta: 'Learn More', showLineup: true },
 ]
 
 /* ------------------------------------------------------------ Product showcase --- */
