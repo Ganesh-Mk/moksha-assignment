@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="satin-hair-wrap">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#EDEBE7"/>
+      <stop offset="1" stop-color="#DFDBD3"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.10"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="drop" x="-20%" y="-10%" width="140%" height="130%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#1a1917" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="1000" fill="url(#ground)"/>
+  <rect width="800" height="1000" fill="url(#halo)"/>
+
+  <!-- The contact shadow. Without one the product floats, which is the single
+       thing that most makes a flat illustration look unfinished. -->
+  <ellipse cx="400" cy="792" rx="150" ry="20" fill="#1a1917" opacity="0.12"/>
+
+  <g filter="url(#drop)">
+    
+    <path d="M232 452 q168 -104 336 0 q-24 232 -168 292 q-144 -60 -168 -292z" fill="#7C6E86"/>
+    <path d="M232 452 q168 -104 336 0 q-24 232 -168 292 q-144 -60 -168 -292z" fill="url(#sheen)"/>
+    <path d="M232 452 q168 -104 336 0 q-84 46 -168 46 q-84 0 -168 -46z" fill="#5C5165" opacity="0.55"/>
+    <path d="M400 498 q0 148 0 246" stroke="#1f5a45" stroke-opacity="0.14" stroke-width="4" fill="none"/>
+    <path d="M320 486 q26 138 80 258" stroke="#1f5a45" stroke-opacity="0.1" stroke-width="3" fill="none"/>
+    <path d="M480 486 q-26 138 -80 258" stroke="#1f5a45" stroke-opacity="0.1" stroke-width="3" fill="none"/>
+  </g>
+</svg>

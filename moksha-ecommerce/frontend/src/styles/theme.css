@@ -1,0 +1,262 @@
+/* ============================================================================
+   The token layer.
+
+   Every colour, size, radius, shadow, duration and easing in this application is
+   defined here and nowhere else. Components consume tokens; they never write a
+   raw hex value or a one-off pixel number.
+
+   Three things follow from that, and they are the reason it is worth the
+   discipline:
+
+     1. Dark mode is a block of variable overrides, not a second set of classes
+        sprinkled through every component.
+     2. Reduced motion is handled once, at the bottom of this file, rather than
+        as a checklist item somebody eventually forgets.
+     3. Changing the accent colour is one line.
+
+   Design intent — this is a haircare storefront, and it should look like a shop
+   rather than like a dashboard template:
+
+     * Warm neutrals, not blue-grey. The paper tone is off-white with a little
+       yellow in it; pure #fff and Tailwind's default cool greys are the two
+       fastest ways to look generic.
+     * One accent, a deep botanical green, used sparingly and with intent.
+     * Hairline borders instead of drop shadows. Shadow is reserved for things
+       that genuinely float above the page — menus, dialogs, toasts.
+     * Small radii. Everything-rounded-2xl is a look, and it is not this one.
+     * Compact by default: a 14px base, tight leading, dense tables.
+   ============================================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* --- Surfaces ---------------------------------------------------------- */
+  --paper: #faf8f5; /* the page itself */
+  --surface: #ffffff; /* cards, panels, anything raised off the page */
+  --surface-sunken: #f2efe9; /* wells, table headers, inset areas */
+  --surface-hover: #f6f3ee;
+
+  /* --- Text -------------------------------------------------------------- */
+  --ink: #1a1917; /* body and headings — warm near-black, never #000 */
+  --ink-muted: #6a6560; /* secondary text, labels */
+  --ink-subtle: #97918a; /* placeholders, metadata, disabled */
+  --ink-inverse: #faf8f5;
+
+  /* --- Lines ------------------------------------------------------------- */
+  --line: #e6e1d8; /* default hairline */
+  --line-strong: #d3cdc1; /* input borders, dividers that need to read */
+
+  /* --- Accent ------------------------------------------------------------ */
+  --accent: #1f5a45;
+  --accent-hover: #17472f;
+  --accent-active: #123a26;
+  --accent-ink: #fbfaf8; /* text on an accent fill */
+  --accent-soft: #e8f0eb; /* tinted background */
+  --accent-soft-ink: #17472f;
+  --accent-ring: #1f5a4540;
+
+  /* --- Status -----------------------------------------------------------
+     Deliberately desaturated to sit beside the accent rather than fight it. */
+  --danger: #a33a2b;
+  --danger-hover: #8a2f22;
+  --danger-soft: #f9e9e6;
+  --danger-soft-ink: #8a2f22;
+
+  --warning: #9a6a1f;
+  --warning-soft: #f8efdd;
+  --warning-soft-ink: #7d5417;
+
+  --info: #2c5578;
+  --info-soft: #e7eef5;
+  --info-soft-ink: #1f3f5c;
+
+  --focus: #1f5a45;
+
+  /* --- Radii ------------------------------------------------------------- */
+  --r-xs: 3px;
+  --r-sm: 5px;
+  --r-md: 7px;
+  --r-lg: 10px;
+  --r-xl: 14px;
+  --r-full: 999px;
+
+  /* --- Elevation ---------------------------------------------------------
+     Only three, and each has a job. Anything that needs a fourth is probably
+     trying to float something that should sit flat. */
+  --shadow-raised: 0 1px 2px rgb(26 25 23 / 0.05), 0 1px 1px rgb(26 25 23 / 0.03);
+  --shadow-overlay: 0 4px 6px -2px rgb(26 25 23 / 0.06), 0 12px 24px -6px rgb(26 25 23 / 0.12);
+  --shadow-dialog: 0 8px 12px -4px rgb(26 25 23 / 0.08), 0 24px 48px -12px rgb(26 25 23 / 0.18);
+
+  /* --- Type -------------------------------------------------------------
+     A 14px base rather than 16px. This is a commerce back-office as much as a
+     storefront: tables, order lines and filters all read better dense, and the
+     display face carries the brand instead of large body text. */
+  --font-ui:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem; /* 11px — badges, table meta */
+  --text-xs: 0.75rem; /* 12px — labels, captions */
+  --text-sm: 0.8125rem; /* 13px — dense UI, table cells */
+  --text-base: 0.875rem; /* 14px — body */
+  --text-md: 1rem; /* 16px — lead paragraphs */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.375rem; /* 22px */
+  --text-2xl: 1.75rem; /* 28px */
+  --text-3xl: 2.25rem; /* 36px */
+  --text-4xl: 3rem; /* 48px — display only */
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.7;
+
+  /* Negative tracking on large type; positive on small caps-y labels. Set as
+     tokens so headings stay consistent instead of each one being nudged. */
+  --tracking-display: -0.022em;
+  --tracking-tight: -0.011em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-label: 0.07em;
+
+  /* --- Motion -----------------------------------------------------------
+     Durations are tokens purely so the reduced-motion block at the bottom of
+     this file can neutralise all of them in one place. */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-base: 220ms;
+  --dur-slow: 340ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* decelerate — entrances */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* symmetric — moves */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1); /* slight overshoot — pops */
+
+  /* --- Layout ------------------------------------------------------------ */
+  --container: 76rem;
+  --container-narrow: 44rem;
+  --header-h: 3.5rem;
+}
+
+/* Dark theme.
+
+   Only tokens are redefined — no component knows a theme exists. Guarded with
+   :not([data-theme="light"]) so an explicit light choice still wins on a device
+   whose OS is dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --paper: #131211;
+    --surface: #1b1a18;
+    --surface-sunken: #0e0d0c;
+    --surface-hover: #232120;
+
+    --ink: #f2efe9;
+    --ink-muted: #a49e95;
+    --ink-subtle: #7a746c;
+    --ink-inverse: #131211;
+
+    --line: #2c2a27;
+    --line-strong: #3d3a36;
+
+    /* Lightened, because the light accent fails contrast on a dark ground.
+       Same hue, different lightness — the brand reads as one colour. */
+    --accent: #6cbd97;
+    --accent-hover: #85cfab;
+    --accent-active: #9adcbc;
+    --accent-ink: #0d1f17;
+    --accent-soft: #18291f;
+    --accent-soft-ink: #9adcbc;
+    --accent-ring: #6cbd9740;
+
+    --danger: #e08272;
+    --danger-hover: #ea9989;
+    --danger-soft: #2c1a17;
+    --danger-soft-ink: #e8a294;
+
+    --warning: #d5a659;
+    --warning-soft: #2a2013;
+    --warning-soft-ink: #ddb469;
+
+    --info: #7aa9d3;
+    --info-soft: #16212c;
+    --info-soft-ink: #9cc2e3;
+
+    --focus: #6cbd97;
+
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-overlay: 0 4px 6px -2px rgb(0 0 0 / 0.4), 0 12px 24px -6px rgb(0 0 0 / 0.55);
+    --shadow-dialog: 0 8px 12px -4px rgb(0 0 0 / 0.45), 0 24px 48px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* Explicit choice wins in both directions. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #131211;
+  --surface: #1b1a18;
+  --surface-sunken: #0e0d0c;
+  --surface-hover: #232120;
+
+  --ink: #f2efe9;
+  --ink-muted: #a49e95;
+  --ink-subtle: #7a746c;
+  --ink-inverse: #131211;
+
+  --line: #2c2a27;
+  --line-strong: #3d3a36;
+
+  --accent: #6cbd97;
+  --accent-hover: #85cfab;
+  --accent-active: #9adcbc;
+  --accent-ink: #0d1f17;
+  --accent-soft: #18291f;
+  --accent-soft-ink: #9adcbc;
+  --accent-ring: #6cbd9740;
+
+  --danger: #e08272;
+  --danger-hover: #ea9989;
+  --danger-soft: #2c1a17;
+  --danger-soft-ink: #e8a294;
+
+  --warning: #d5a659;
+  --warning-soft: #2a2013;
+  --warning-soft-ink: #ddb469;
+
+  --info: #7aa9d3;
+  --info-soft: #16212c;
+  --info-soft-ink: #9cc2e3;
+
+  --focus: #6cbd97;
+
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-overlay: 0 4px 6px -2px rgb(0 0 0 / 0.4), 0 12px 24px -6px rgb(0 0 0 / 0.55);
+  --shadow-dialog: 0 8px 12px -4px rgb(0 0 0 / 0.45), 0 24px 48px -12px rgb(0 0 0 / 0.6);
+}
+
+/* Honouring the preference once, here, makes it structurally true for every
+   component written afterwards — rather than a per-component checklist that
+   will eventually be missed (DECISIONS D-014).
+
+   Not `animation: none`: some interactions rely on an animation completing to
+   fire its end event. A near-zero duration keeps the event, drops the motion. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0.01ms;
+    --dur-fast: 0.01ms;
+    --dur-base: 0.01ms;
+    --dur-slow: 0.01ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

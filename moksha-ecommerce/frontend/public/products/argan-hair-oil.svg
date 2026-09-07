@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="argan-hair-oil">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#EFEAE3"/>
+      <stop offset="1" stop-color="#E2D8C9"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.10"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="drop" x="-20%" y="-10%" width="140%" height="130%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#1a1917" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="1000" fill="url(#ground)"/>
+  <rect width="800" height="1000" fill="url(#halo)"/>
+
+  <!-- The contact shadow. Without one the product floats, which is the single
+       thing that most makes a flat illustration look unfinished. -->
+  <ellipse cx="400" cy="792" rx="150" ry="20" fill="#1a1917" opacity="0.12"/>
+
+  <g filter="url(#drop)">
+    
+    <rect x="322" y="382" width="156" height="380" rx="22" fill="#B98A3E"/>
+    <rect x="322" y="382" width="156" height="380" rx="22" fill="url(#sheen)"/>
+    <rect x="360" y="326" width="80" height="62" rx="10" fill="#8A6529"/>
+    <rect x="378" y="212" width="44" height="120" rx="22" fill="#8A6529" opacity="0.55"/>
+    <circle cx="400" cy="200" r="30" fill="#8A6529"/>
+    <rect x="346" y="520" width="108" height="130" rx="6" fill="#faf8f5" opacity="0.94"/>
+    <rect x="368" y="550" width="64" height="6" rx="3" fill="#1f5a45" opacity="0.75"/>
+    <rect x="368" y="572" width="44" height="5" rx="2.5" fill="#1f5a45" opacity="0.3"/>
+  </g>
+</svg>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="curl-refresh-mist">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#ECEEF0"/>
+      <stop offset="1" stop-color="#DCE1E6"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.10"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="drop" x="-20%" y="-10%" width="140%" height="130%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#1a1917" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="1000" fill="url(#ground)"/>
+  <rect width="800" height="1000" fill="url(#halo)"/>
+
+  <!-- The contact shadow. Without one the product floats, which is the single
+       thing that most makes a flat illustration look unfinished. -->
+  <ellipse cx="400" cy="792" rx="150" ry="20" fill="#1a1917" opacity="0.12"/>
+
+  <g filter="url(#drop)">
+    
+    <rect x="316" y="340" width="168" height="422" rx="20" fill="#8FA8B8"/>
+    <rect x="316" y="340" width="168" height="422" rx="20" fill="url(#sheen)"/>
+    <rect x="366" y="286" width="68" height="58" rx="8" fill="#6A8496"/>
+    <path d="M366 286 h68 v-34 h-30 l-14 -22 h-24 z" fill="#6A8496"/>
+    <circle cx="500" cy="238" r="5" fill="#6A8496" opacity="0.5"/>
+    <circle cx="534" cy="216" r="3.5" fill="#6A8496" opacity="0.38"/>
+    <circle cx="524" cy="262" r="3" fill="#6A8496" opacity="0.3"/>
+    <rect x="344" y="486" width="112" height="150" rx="6" fill="#faf8f5" opacity="0.94"/>
+    <rect x="366" y="518" width="68" height="6" rx="3" fill="#1f5a45" opacity="0.75"/>
+    <rect x="366" y="540" width="46" height="5" rx="2.5" fill="#1f5a45" opacity="0.3"/>
+  </g>
+</svg>
