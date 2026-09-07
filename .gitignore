@@ -1,0 +1,51 @@
+# --- Secrets: never commit ---
+.env
+.env.local
+.env.*.local
+*.pem
+# Google downloads its OAuth credentials as client_secret_<id>.json. It is easy to
+# drop one into the repo by accident; these patterns catch it anywhere in the tree.
+client_secret*.json
+*credentials*.json
+*service-account*.json
+.stripe-cli/
+
+# --- Node ---
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+*.local
+.eslintcache
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# --- Editors / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Build / deploy ---
+.vercel
+.turbo
+
+# --- Figma extraction output ---
+# All regenerable with `node hydra-curls/scripts/figma-extract.mjs`, and ~90MB in total.
+# What ships is hydra-curls/public/assets/optimized/ (AVIF/WebP), which IS committed.
+docs/figma/raw/
+docs/figma/reference/sections/
+docs/figma/reference/slices/
+hydra-curls/public/assets/figma/
+# Keep docs/figma/reference/full-page.png — the single reference render worth versioning.
