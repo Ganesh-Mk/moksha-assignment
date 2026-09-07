@@ -62,9 +62,11 @@ for (const width of widths) {
   await page.waitForTimeout(400)
 
   const file = `${outDir}/${outName}-${width}.png`
+  // `clip` is viewport-relative unless the shot is a full-page one, so `fullPage` stays on in
+  // both modes and the clip just selects a band of the document.
   await page.screenshot({
     path: file,
-    fullPage: !clip,
+    fullPage: true,
     ...(clip ? { clip: { x: 0, y: clip.y, width, height: clip.h } } : {}),
   })
 
@@ -78,10 +80,22 @@ for (const width of widths) {
       return `${el.tagName.toLowerCase()}${id}${cls}`
     }
 
+    // Decorative art is *meant* to bleed past the band edge; what matters is whether an
+    // ancestor clips it. An element wider than the document inside an `overflow: hidden`
+    // parent is the design working as intended, not a bug — only unclipped bleed can
+    // actually produce a scrollbar.
+    const isClipped = (el) => {
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        const { overflowX } = getComputedStyle(p)
+        if (overflowX === 'hidden' || overflowX === 'clip' || overflowX === 'auto') return true
+      }
+      return false
+    }
+
     const overflow = []
     for (const el of document.querySelectorAll('*')) {
       const rect = el.getBoundingClientRect()
-      if (rect.right > docWidth + 1 || rect.left < -1) {
+      if ((rect.right > docWidth + 1 || rect.left < -1) && !isClipped(el)) {
         overflow.push(`${describe(el)} [${Math.round(rect.left)}..${Math.round(rect.right)}]`)
       }
     }

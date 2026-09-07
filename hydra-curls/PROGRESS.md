@@ -30,7 +30,7 @@
 - [ ] 2. Announcement ticker
 - [x] 3. Hero — raster bg, gradient-clip headline, derived white logo, flourish, scroll cue
 - [x] 4. Wave divider — primitive, reused at y4273
-- [ ] 5. New Launch
+- [x] 5. New Launch — copy column, 3 badges, 2 CTAs, tilted bottle + splash + leaf
 - [ ] 6. Brand key visual
 - [ ] 7. Benefit cards
 - [ ] 8. Product showcase

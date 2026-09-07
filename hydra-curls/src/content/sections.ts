@@ -19,6 +19,13 @@ export interface HeadingRun {
 /** One designed line. The break applies from `md` up; below that the heading reflows. */
 export type HeadingLine = readonly HeadingRun[]
 
+/**
+ * Body copy carrying an inline highlight. Same shape as a heading line, used where a
+ * paragraph — not a heading — has a coloured run, e.g. "48-hour hydration" in the New Launch
+ * intro, which Figma stores as a character-style override on one text node.
+ */
+export type RichText = readonly HeadingRun[]
+
 /* ------------------------------------------------------------------ New Launch --- */
 
 export interface Badge {
@@ -27,8 +34,13 @@ export interface Badge {
 
 export const newLaunch = {
   eyebrow: 'New Launch',
-  intro:
-    'Revolutionary hair care range specially designed for Arab curly, coily & wavy hair. Experience 48-hour hydration with natural ingredients like Hyaluronic Acid, Coconut & Avocado.',
+  intro: [
+    {
+      text: 'Revolutionary hair care range specially designed for Arab curly, coily & wavy hair. Experience ',
+    },
+    { text: '48-hour hydration', accent: true },
+    { text: ' with natural ingredients like Hyaluronic Acid, Coconut & Avocado.' },
+  ] as RichText,
   badges: [
     { label: 'No SLS, Silicones, Parabens' },
     { label: '48-Hour Hydration' },

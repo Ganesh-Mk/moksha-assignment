@@ -3,26 +3,29 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
+/**
+ * Figma's buttons are 10px-radius rectangles, not pills, and their label is Gotham 350 —
+ * Montserrat 400 here, so no `font-medium`. Both measured off `Frame 4` / `Frame 5` at y1780.
+ */
 const brandButton = cva(
-  // min-h-11 is 44px — the minimum comfortable tap target, which the 20px-type buttons in the
-  // design would not otherwise reach on mobile.
-  'inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-body font-medium transition-colors',
+  'inline-flex items-center justify-center gap-3 rounded-[0.625rem] text-body transition-[background,color,filter] duration-200',
   {
     variants: {
       variant: {
-        /** Filled cyan — "Explore Products". */
-        primary: 'bg-brand-cyan text-white hover:bg-brand-cyan-deepest',
-        /** Outlined — "Learn Curly Girl Method". */
+        /** "Explore Products" — filled with the cyan gradient, white label. */
+        primary: 'bg-[image:var(--gradient-cyan)] text-white hover:brightness-110',
+        /** "Learn Curly Girl Method" — 1px cyan rule, cyan label. */
         outline: 'border border-brand-cyan text-brand-cyan hover:bg-brand-cyan hover:text-white',
-        /** The gradient "Learn More" pill on the benefit cards. */
+        /** The "Learn More" pill on the benefit cards, which uses the darker gradient. */
         pill: 'bg-[image:var(--gradient-pill)] text-white hover:brightness-110',
         /** Text-only "EXPLORE NOW" on the resource cards. */
         link: 'text-brand-cyan underline-offset-4 hover:underline',
       },
       size: {
-        md: 'px-6 py-3',
-        lg: 'px-8 py-4',
-        none: '',
+        /** 58px tall in the design; the min-height also clears the 44px tap target. */
+        md: 'min-h-[3.625rem] px-4 py-4',
+        sm: 'min-h-11 px-4 py-2',
+        none: 'min-h-11',
       },
     },
     defaultVariants: { variant: 'primary', size: 'md' },
@@ -32,9 +35,9 @@ const brandButton = cva(
 interface BrandButtonProps extends VariantProps<typeof brandButton> {
   children: ReactNode
   /**
-   * Renders an anchor. Every call site on this page navigates rather than acting, so an <a>
-   * is the correct element — a <button> here would lose middle-click, keyboard semantics and
-   * the browser's own link affordances.
+   * Renders an anchor. Every call site on this page navigates rather than acting, so <a> is
+   * the correct element — a <button> would lose middle-click, keyboard semantics and the
+   * browser's own link affordances.
    */
   href: string
   className?: string

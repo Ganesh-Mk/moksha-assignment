@@ -166,9 +166,11 @@
   /* ----------------------------------------------------------- dimensions --- */
 
   /* Figma's layout grid: 12 columns · 118px column · 24px gutter · 120px side margin.
-     1920 − (2 × 120) = 1680, so the content container caps there and full-bleed art
-     breaks out of it rather than the container growing. */
-  --spacing-content: 105rem; /* 1680px */
+     12 × 118 + 11 × 24 = 1680 of content, sitting inside 120px margins — so the *outer*
+     container caps at 1920 and the padding carves the margins out of it. Capping the outer
+     box at 1680 instead would leave only 1440 of content at 1920px and quietly narrow every
+     section by 240px. Full-bleed art breaks out of the container rather than widening it. */
+  --spacing-content: 120rem; /* 1920px outer → 1680px of content at the design width */
   --spacing-gutter: 7.5rem; /* 120px — matches the Figma side margin */
 }
 

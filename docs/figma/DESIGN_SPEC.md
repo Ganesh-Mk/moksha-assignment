@@ -246,7 +246,10 @@ faithfully is a core part of what is being graded, so decide deliberately:
 
 **Rules that keep it honest at every width:**
 
-- Content container `max-w-[1680px] mx-auto px-5 md:px-10 xl:px-[120px]` (the 120px matches the grid margin).
+- Content container `max-w-[1920px] mx-auto px-5 md:px-10 xl:px-[120px]`. ⚠️ The cap is the
+  **outer** box, not the content width: 12 × 118 + 11 × 24 = **1680 of content** sitting *inside*
+  120px margins. Capping the outer box at 1680 as well leaves only 1440 of content at 1920 and
+  silently narrows every section by 240px.
 - Full-bleed decorative bands break out of the container; **content never does**.
 - Cards stack `1 → 2 → 3` columns.
 - Fluid type via `clamp()`, not a pile of breakpoint overrides.
