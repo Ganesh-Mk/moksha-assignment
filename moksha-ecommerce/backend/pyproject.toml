@@ -48,9 +48,15 @@ dev = [
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-# Explicit, because `alembic/` sits alongside `app/` and setuptools refuses to guess between them.
-packages = ["app"]
+[tool.setuptools.packages.find]
+# Explicit, because `alembic/`, `scripts/` and `tests/` sit alongside `app/` and setuptools
+# refuses to guess between them.
+#
+# `app*`, not `app`: a bare "app" declares the top-level package ONLY, so `app.api`, `app.core`
+# and `app.services` were left out of the wheel entirely. Nothing caught it locally — an editable
+# install puts the source tree on sys.path, so every subpackage resolved anyway — and the image
+# built clean. It would have failed on Render at import time with `No module named 'app.api'`.
+include = ["app*"]
 
 [tool.ruff]
 line-length = 100

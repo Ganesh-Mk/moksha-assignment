@@ -31,6 +31,22 @@ def _async_url(url: str) -> str:
 engine: AsyncEngine = create_async_engine(
     _async_url(settings.database_url),
     echo=False,
+    connect_args={
+        # Disable psycopg's automatic prepared statements.
+        #
+        # psycopg 3 prepares a statement after it has seen it five times, and the prepared
+        # statement lives on the *session*. Behind a transaction-mode pooler (PgBouncer, which is
+        # what Neon's pooled endpoint is) a session is handed to a different client between
+        # transactions, so the second use of a prepared name lands on a backend that has never
+        # seen it — or worse, on one that has it bound to different SQL. The symptom is an
+        # intermittent `DuplicatePreparedStatement` under load and nothing at all in testing.
+        #
+        # Turned off unconditionally rather than sniffing the hostname for "-pooler": the
+        # deployment target is pooled, the saving on a direct connection is small for queries
+        # this shape, and a rule that silently stops applying when a provider renames a host is
+        # worse than a rule that always applies.
+        "prepare_threshold": None,
+    },
     # pool_pre_ping costs one round-trip per checkout and saves the "server closed the connection
     # unexpectedly" error that managed Postgres produces after an idle timeout.
     pool_pre_ping=True,

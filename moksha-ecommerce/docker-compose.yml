@@ -49,8 +49,12 @@ services:
       db:
         condition: service_healthy
     volumes:
-      # Source mount + --reload: edit a file on the host, the container restarts. Excluded from
-      # the image itself, which copies the code in.
+      # Source mount + --reload: edit a file on the host, the container restarts.
+      #
+      # Note what this means for verification: the mount covers /app, so the *installed* package
+      # in the image is shadowed and compose never executes the image's own copy of the code.
+      # Compose therefore proves nothing about the Dockerfile — two build-path bugs shipped
+      # precisely because they were invisible here. backend/scripts/docker-verify.sh covers it.
       - ./backend:/app
     command: >
       sh -c "alembic upgrade head &&

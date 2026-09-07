@@ -24,8 +24,13 @@ if config.config_file_name is not None:
 
 
 def _sync_url() -> str:
-    """Strip any async driver suffix; Alembic runs synchronously."""
-    url = settings.database_url
+    """The DSN migrations run against, normalised for the sync driver.
+
+    `MIGRATION_DATABASE_URL` wins when set. On a managed Postgres that means pointing migrations
+    at the *direct* endpoint while the application keeps using the pooled one — DDL and a
+    transaction pooler are a bad combination, and the failure is intermittent rather than loud.
+    """
+    url = settings.migration_database_url or settings.database_url
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
     return url.replace("+asyncpg", "+psycopg")

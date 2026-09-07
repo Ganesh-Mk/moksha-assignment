@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     # A separate database for the suite. The oversell test needs real SELECT ... FOR UPDATE,
     # so tests run against Postgres — but never against the database holding the demo data.
     test_database_url: str | None = None
+    # Optional DSN for migrations only, falling back to `database_url` when unset.
+    #
+    # Managed Postgres usually offers two endpoints: a pooled one (PgBouncer in transaction mode)
+    # and a direct one. The pooled endpoint is right for the application — it is what keeps a
+    # dozen instances from exhausting the connection limit — but it is the wrong place to run DDL:
+    # a transaction pooler hands each transaction a different backend session, which is hostile to
+    # long multi-statement migrations and to session-scoped state generally. Neon's own guidance is
+    # to migrate over the direct endpoint.
+    migration_database_url: str | None = None
     jwt_secret: str = "dev-only-insecure-secret-change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60

@@ -72,9 +72,8 @@ The API container runs `alembic upgrade head` on boot and waits for the database
 rather than sleeping. Compose reads the repository-root `.env`, so secrets live in exactly one place
 and never appear in `docker-compose.yml`.
 
-> Not yet verified on this machine — Docker Desktop's WSL backend is broken here and repairing it
-> would mean discarding 14 GB of the user's images. See [docs/VERIFICATION_PENDING.md](docs/VERIFICATION_PENDING.md).
-> Everything below was used instead, and the application itself is fully exercised.
+The production image is verified separately by `backend/scripts/docker-verify.sh`, which builds it
+and runs it against a real database — see the note under [Tests](#tests) for why compose cannot do that.
 
 ### Option B — run the pieces directly
 
@@ -176,9 +175,17 @@ withdrawn — invisible in the catalogue, still resolvable from a past order.
 ## Tests
 
 ```bash
-cd backend && pytest -v          # 191 tests
-cd frontend && npm test          # 20 tests
+./scripts/verify.ps1                    # all eight gates: lint, types, tests, build
+cd backend && ./scripts/docker-verify.sh   # builds the production image and proves it runs
+
+cd backend && pytest -v                 # 191 tests
+cd frontend && npm test                 # 20 tests
 ```
+
+**`docker compose up` does not verify the Dockerfile.** Compose bind-mounts the source over
+`/app`, so the image's own copy of the code never executes and the build path is never exercised.
+Two bugs shipped through that gap and were caught only by a real deploy — see
+`backend/scripts/docker-verify.sh`, which now closes it.
 
 **The whole suite runs green with no API credentials.** Google, Stripe and Anthropic are each
 reached through a seam the production code already has, and tests substitute a fake at it — so the
@@ -234,6 +241,33 @@ moksha-ecommerce/
 ```
 
 ---
+
+## Deploying
+
+**Set `ENVIRONMENT` last.** `assert_production_ready()` refuses to boot unless *every* credential
+is present — deliberately, because an instance that comes up with Stripe disabled looks healthy to
+the load balancer and takes orders it cannot charge. It exits with code 3 and names the missing
+variable, which on a first deploy (before Vercel exists, so no `STRIPE_WEBHOOK_SECRET` or
+`FRONTEND_URL`) reads as a crash loop.
+
+So the order is:
+
+1. Deploy with `ENVIRONMENT` **unset** — it defaults to `local`, the app boots, and `/health/db`
+   reports which integrations are still missing.
+2. Add `FRONTEND_URL` once Vercel is up, and `STRIPE_WEBHOOK_SECRET` once the Stripe endpoint
+   points at the Render URL. That secret is **not** the one from `stripe listen`; a dashboard
+   endpoint has its own.
+3. *Then* set `ENVIRONMENT=production` and redeploy, so the guard is armed for the demo.
+
+**Migrations and connection pooling.** `MIGRATION_DATABASE_URL` is optional and overrides
+`DATABASE_URL` for Alembic only. On Neon, point it at the **direct** endpoint while the app keeps
+the pooled one: the pooled endpoint is PgBouncer in transaction mode, which hands each transaction
+a different backend session — fine for the app, hostile to multi-statement DDL.
+
+For the same reason the async engine sets `prepare_threshold=None`. psycopg 3 auto-prepares a
+statement after five uses and prepared statements are session-scoped, so through a transaction
+pooler the second use lands on a backend that has never seen it. The symptom is an intermittent
+`DuplicatePreparedStatement` under load and nothing at all in testing.
 
 ## AI tools used
 
