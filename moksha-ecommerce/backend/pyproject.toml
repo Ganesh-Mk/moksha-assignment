@@ -1,0 +1,88 @@
+[project]
+name = "moksha-api"
+version = "0.1.0"
+description = "Moksha AI E-Commerce — FastAPI backend"
+requires-python = ">=3.12"
+
+dependencies = [
+    # Web framework. [standard] brings uvicorn + the fastapi CLI, so the Dockerfile
+    # and local dev share one entry point.
+    "fastapi[standard]>=0.115.0",
+    # Typed environment loading. This is the mechanism that makes config fail loudly
+    # at startup instead of silently defaulting a secret to None.
+    "pydantic-settings>=2.6.0",
+    # Async ORM. 2.0's Mapped[] style keeps the models strict-typed under mypy.
+    "sqlalchemy[asyncio]>=2.0.36",
+    # Postgres driver. psycopg 3 drives BOTH the async app and sync Alembic, so the
+    # project needs exactly one driver rather than asyncpg + psycopg2.
+    "psycopg[binary,pool]>=3.2.0",
+    "alembic>=1.14.0",
+    # Structured logs. Correlation ids are only useful if they land in a parseable field.
+    "python-json-logger>=2.0.7",
+
+    # --- Phase 2: auth ---
+    # Verifies Google ID tokens against Google's live JWKS. Never decode-without-verify.
+    "google-auth>=2.36.0",
+    "httpx>=0.28.0",
+    # Issues and verifies our own access/refresh tokens.
+    "pyjwt>=2.10.0",
+
+    # --- Phase 5: payments ---
+    "stripe>=11.3.0",
+
+    # --- Phase 6: AI agent ---
+    "langgraph>=0.2.50",
+    "langchain-core>=0.3.20",
+    "langchain-anthropic>=0.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Explicit, because `alembic/` sits alongside `app/` and setuptools refuses to guess between them.
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
+ignore = [
+    # Pydantic/FastAPI dependency defaults are function calls in argument position by design.
+    "B008",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert on shadowed builtins and use long parametrize tables.
+"tests/*" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+disallow_untyped_decorators = false  # FastAPI/SQLAlchemy decorators are untyped upstream.
+
+[[tool.mypy.overrides]]
+module = ["stripe.*", "langgraph.*", "pythonjsonlogger.*", "google.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+# One event loop for the whole session, so session-scoped async fixtures (the engine) and
+# function-scoped tests share it instead of erroring on a scope mismatch.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning:app.*"]

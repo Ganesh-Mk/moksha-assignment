@@ -1,0 +1,87 @@
+# One-command startup for the reviewer:  docker compose up
+#
+# Reads secrets from the repository-root .env, so there is exactly one place they live and none
+# of them appear in this file or in git.
+
+name: moksha
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: moksha
+      POSTGRES_PASSWORD: moksha
+      POSTGRES_DB: moksha
+    ports:
+      # Exposed so psql / pgAdmin can inspect the schema during review.
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Creates the separate moksha_test database. The oversell test needs real
+      # SELECT ... FOR UPDATE, which SQLite does not implement, so the suite runs against
+      # Postgres — but never against the database holding the demo data.
+      - ./backend/scripts/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      # The API waits on this rather than on a sleep, so a slow first boot cannot race the
+      # migration step.
+      test: ["CMD-SHELL", "pg_isready -U moksha -d moksha"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    env_file:
+      # Optional: compose still starts if the file is absent, which is what makes a fresh clone
+      # with no credentials come up and serve /health.
+      - path: ../.env
+        required: false
+    environment:
+      # Overrides .env so the container talks to the compose network, not to localhost.
+      DATABASE_URL: postgresql+psycopg://moksha:moksha@db:5432/moksha
+      ENVIRONMENT: local
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Source mount + --reload: edit a file on the host, the container restarts. Excluded from
+      # the image itself, which copies the code in.
+      - ./backend:/app
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume: keeps the image's node_modules instead of shadowing them with the
+      # host's, which would break on a platform mismatch (Windows host, Linux container).
+      - /app/node_modules
+    restart: unless-stopped
+
+volumes:
+  pgdata:
