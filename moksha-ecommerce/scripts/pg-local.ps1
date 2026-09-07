@@ -46,6 +46,43 @@ if (-not $Bin) {
     throw "No PostgreSQL installation found under 'C:\Program Files\PostgreSQL'. Use 'docker compose up' instead."
 }
 
+function Start-Cluster {
+    <#
+        `pg_ctl start` has to be launched detached on Windows.
+
+        Run inline, it hands its console handles to the postgres child, and the calling shell
+        then blocks until the *server* exits — so the script appears to hang even though the
+        database started fine.
+
+        The argument list is one pre-quoted string rather than an array: `-o` takes a single
+        argument that itself contains spaces, and Start-Process does not quote array elements,
+        so the array form silently passes `-p`, `55432` and the rest as separate arguments.
+        pg_ctl then fails before writing anything to the log, which looks exactly like the
+        server refusing to start.
+    #>
+    $options = "-p $Port -c listen_addresses=127.0.0.1"
+    $arguments = '-D "{0}" -o "{1}" -l "{2}" start' -f $DataDir, $options, $LogFile
+
+    # Fully detached: no -Wait, and both streams redirected to files. Sharing a stdout handle
+    # with the postgres child is what makes the calling shell block until the *server* stops,
+    # and -Wait alone does not avoid that. Readiness is confirmed by polling instead.
+    $ctlLog = Join-Path $DataDir 'pg_ctl.log'
+    Start-Process -FilePath "$Bin\pg_ctl.exe" -ArgumentList $arguments `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $ctlLog -RedirectStandardError "$ctlLog.err" | Out-Null
+
+    # Wait for the port to actually accept a connection — the only signal that matters.
+    for ($i = 0; $i -lt 30; $i++) {
+        & "$Bin\pg_isready.exe" -h 127.0.0.1 -p $Port -q
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "PostgreSQL is accepting connections on 127.0.0.1:$Port."
+            return
+        }
+        Start-Sleep -Milliseconds 500
+    }
+    throw "Cluster did not become ready within 15s. See $LogFile and $ctlLog.err"
+}
+
 function Invoke-Psql([string]$Database, [string]$Sql) {
     $env:PGPASSWORD = $Password
     & "$Bin\psql.exe" -h 127.0.0.1 -p $Port -U $User -d $Database -v ON_ERROR_STOP=1 -c $Sql
@@ -66,8 +103,7 @@ switch ($Command) {
             # The password must not outlive initdb, even on a development machine.
             Remove-Item $pwFile -Force -ErrorAction SilentlyContinue
         }
-        & "$Bin\pg_ctl.exe" -D $DataDir -o "-p $Port -c listen_addresses=127.0.0.1" -l $LogFile start
-        Start-Sleep -Seconds 3
+        Start-Cluster
         Invoke-Psql 'postgres' "CREATE DATABASE moksha OWNER $User;"
         # Separate test database: the oversell test needs real SELECT ... FOR UPDATE, so the
         # suite runs against Postgres — but never against the database holding the demo data.
@@ -76,7 +112,7 @@ switch ($Command) {
         Write-Host "  DATABASE_URL=postgresql+psycopg://${User}:${Password}@127.0.0.1:${Port}/moksha"
     }
     'start' {
-        & "$Bin\pg_ctl.exe" -D $DataDir -o "-p $Port -c listen_addresses=127.0.0.1" -l $LogFile start
+        Start-Cluster
     }
     'stop' {
         & "$Bin\pg_ctl.exe" -D $DataDir -m fast stop
