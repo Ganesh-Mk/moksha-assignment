@@ -223,3 +223,25 @@ once, globally.
 it once at the token layer makes it structurally true for every component written afterwards.
 
 **Gave up:** nothing.
+
+---
+
+## D-015 · A public endpoint validates the *kind* of secret it returns
+**Status:** accepted · 2026-09-08 — added after a production incident
+
+`/payments/config` serves Stripe's publishable key to the browser, which is correct: publishable
+keys are designed to be public. A deploy set `STRIPE_PUBLISHABLE_KEY` to the **secret** key, and
+the endpoint served it to anyone who asked.
+
+**Decision:** the endpoint checks the prefix before returning. `pk_` is publishable; `sk_`
+(secret), `rk_` (restricted) and `whsec_` (signing) are not, and a non-`pk_` value raises the same
+fail-loud `ConfigurationError` as a missing one — 503, naming the variable and reporting only the
+three-character prefix, never the value.
+
+**Why this is not over-engineering.** `config.py` was built on "fail loudly, never silently", and
+it had been catching *missing* variables since Phase 0. This was the blind spot: a variable that
+was present, correctly typed as a string, and completely wrong. Absence was checked; identity was
+not. Anywhere a secret can be *returned* rather than merely used, the kind of secret is worth
+asserting — the cost is one `startswith`, and the failure it prevents is a leaked credential.
+
+**Gave up:** nothing. Six regression tests assert the key never appears in the response body.

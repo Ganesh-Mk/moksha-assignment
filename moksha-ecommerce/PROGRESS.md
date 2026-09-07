@@ -1,13 +1,15 @@
 # Progress — Assignment 2 (Moksha AI E-Commerce)
 
 ## Status
-**Phases 0–9 complete and pushed. Phase 10 (deploy) is the only remaining work**, and it needs
-accounts I do not have.
+**All ten phases complete. Deployed and verified in production.**
+
+- App — https://moksha-ecommerce.vercel.app
+- API — https://moksha-api-mv1j.onrender.com/docs
 
 Everything runs. `./scripts/verify.ps1` runs all eight quality gates in one command:
 
 ```
-backend  · ruff lint · ruff format · mypy --strict · pytest (191)
+backend  · ruff lint · ruff format · mypy --strict · pytest (196)
 frontend · tsc --strict · oxlint · vitest (20) · vite build
 All gates passed.
 ```
@@ -21,15 +23,15 @@ All gates passed.
 - [x] 5. Stripe — Checkout + signature-verified idempotent webhook
 - [x] 6. LangGraph agent — tools over services, identity outside the model's reach, SSE, rate limit
 - [x] 7. Frontend — 9 screens on a hand-built token design system
-- [x] 8. Tests — 191 backend + 20 frontend, all green with no credentials
+- [x] 8. Tests — 196 backend + 20 frontend, all green with no credentials
 - [x] 9. Docs — schema, API, system design, decisions, README
-- [ ] 10. Deploy — **needs the user's Neon / Render / Vercel accounts**
+- [x] 10. Deploy — Vercel (web) · Render (API, Docker) · Neon (Postgres)
 
 ## Deliverables
 | # | Deliverable | Status |
 |---|---|---|
 | 1 | GitHub repository, clean history | ✅ `github.com/Ganesh-Mk/moksha-assignment` |
-| 2 | Live/demo URL | ⏳ Phase 10 |
+| 2 | Live/demo URL | ✅ web + API `/docs`, both verified live |
 | 3 | README with setup | ✅ `README.md` |
 | 4 | Database schema | ✅ `docs/DATABASE_SCHEMA.md` |
 | 5 | API documentation | ✅ `docs/API.md` + live `/docs` |
@@ -63,21 +65,40 @@ Every integration was exercised against its real third party, not only against m
 3. **`is_active` read as `None` on a brand-new user**, because the column default applies at flush
    and the check ran before it. First sign-in was rejected as "account disabled".
 
-## For the user — three things to decide
+## Deployment incidents — the interesting part
 
-1. **Port 5173 is contested.** Assignment 1's dev server and this one both want it. Only A2 needs
-   it (Google authorises `http://localhost:5173` and nothing else), so **A1 should move to 5174**.
-   Ask me and I will not touch A1 — it is the other session's folder.
-2. **`ADMIN_EMAILS` is not in the root `.env`**, only in `.env.example`. Without it nobody gets the
-   admin role. It is set in `backend/.env.local` for local work; the deployment needs it too.
-3. **Deploy accounts** — Neon, Render, Vercel — are all Phase 10 needs.
+Four bugs that passed every local gate and were found only by deploying. Written up in the
+README's "What deploying actually surfaced"; the short version:
+
+1. **The Dockerfile had never been built.** `docker compose` bind-mounts the source over `/app`, so
+   the image's own code never runs and the build path is never exercised. Two bugs hid there — one
+   that failed the build, one that built clean and would have failed at import.
+2. **No SPA fallback.** Every deep link 404'd, including Stripe's `/checkout/success` return URL.
+3. **Payments and webhooks on different Stripe accounts.** Orders stuck at `pending_payment`
+   forever; the success page was behaving correctly and looked hung.
+4. **The API served its own secret key.** `STRIPE_PUBLISHABLE_KEY` held the secret key, and
+   `/payments/config` is public by design.
+
+The through-line: each was a boundary the tests did not cross. Fail-loud config caught *missing*
+variables from day one; it had nothing to say about a variable holding the *wrong kind* of value —
+which is now checked.
+
+## Open items
+
+1. **Roll the Stripe secret key** — briefly exposed by `/payments/config` before the prefix guard.
+   Test-mode, bounded risk, but it should not stay live.
+2. **Total time taken** — the one deliverable still blank, and only the user can fill it in.
+3. **Port 5173** is contested with Assignment 1 locally. Only A2 needs it (Google authorises that
+   origin and no other), so A1 should move. Not my folder to change.
 
 ## Local environment notes
-- **Docker Desktop's WSL backend is broken on this machine** (`wslexec … 0xc00000fd`). Repairing it
-  most likely means discarding a 14 GB `docker_data.vhdx` that is the user's, so I did not.
-  Development ran against a private Postgres cluster from `scripts/pg-local.ps1` — its own data
-  directory, port 55432, no impact on the machine's PostgreSQL 18 service. `docker-compose.yml`
-  parses (`docker compose config` succeeds) but has not been run; see `docs/VERIFICATION_PENDING.md`.
+- **Docker** was intermittently broken on this machine early on (`wslexec … 0xc00000fd`), which is
+  why development ran against a private Postgres cluster from `scripts/pg-local.ps1` — its own data
+  directory, port 55432, no impact on the machine's PostgreSQL 18 service. It recovered after a
+  clean `wsl --shutdown`, and the production image has since been built and run locally by
+  `backend/scripts/docker-verify.sh`. `docker-compose.yml` itself still has not been run end to end.
+- `pg-local.ps1 start` waits up to 90s: after an unclean shutdown Postgres replays the WAL before
+  accepting connections, and a shorter timeout reports a healthy recovery as a failure.
 - Local overrides live in `backend/.env.local` and `frontend/.env.local`, both gitignored, not in
   the shared root `.env`.
 
@@ -87,4 +108,5 @@ Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-001 … D-014).
 ## Time log
 | Date | Phases |
 |---|---|
-| 2026-09-07 | 0–9, complete. Google, Stripe and Anthropic credentials arrived mid-build; every integration verified live. |
+| 2026-09-07 | 0–9. Google, Stripe and Anthropic credentials arrived mid-build; every integration verified against its real service. |
+| 2026-09-08 | 10 — deployed to Vercel + Render + Neon, and the four production-only bugs above found and fixed. |

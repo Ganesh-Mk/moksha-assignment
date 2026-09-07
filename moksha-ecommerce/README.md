@@ -5,9 +5,14 @@ Assignment 2. An e-commerce application demonstrating the full chain
 
 | | |
 |---|---|
-| **Live app** | _TBD — Phase 10_ |
-| **API docs** | _TBD_ `/docs` |
+| **Live app** | **https://moksha-ecommerce.vercel.app** |
+| **API docs** | **https://moksha-api-mv1j.onrender.com/docs** (Swagger) · [`/redoc`](https://moksha-api-mv1j.onrender.com/redoc) |
+| **Health** | [`/api/v1/health/db`](https://moksha-api-mv1j.onrender.com/api/v1/health/db) — reports which integrations are configured |
 | **Stack** | React 19 · TypeScript · Tailwind v4 · FastAPI · PostgreSQL 16 · LangGraph · Stripe |
+
+> **Warm the API before trying the demo.** Render's free tier sleeps after ~15 minutes idle and
+> cold-starts in roughly 50 seconds. Open the health link above first; the frontend also says so
+> rather than showing a generic failure.
 
 **Documentation:** [System design](docs/SYSTEM_DESIGN.md) · [Database schema](docs/DATABASE_SCHEMA.md)
 · [API reference](docs/API.md) · [Decisions](docs/DECISIONS.md)
@@ -321,6 +326,43 @@ For the same reason the async engine sets `prepare_threshold=None`. psycopg 3 au
 statement after five uses and prepared statements are session-scoped, so through a transaction
 pooler the second use lands on a backend that has never seen it. The symptom is an intermittent
 `DuplicatePreparedStatement` under load and nothing at all in testing.
+
+## What deploying actually surfaced
+
+Everything below passed locally, and every one of these was found only by deploying. Kept here
+because "it worked on my machine" is the interesting part, not an embarrassment to hide.
+
+**1 · The Dockerfile had never been built.** `pip install .` failed on Render with
+`package directory 'app' does not exist` — the image copied `pyproject.toml` before the source.
+It survived local testing because `docker compose` bind-mounts the source over `/app`, so the
+image's own copy of the code is never executed. Behind it hid a second, worse bug:
+`packages = ["app"]` installs the *top-level* package only, so `app.api` and `app.services` were
+missing from the wheel — that one **built clean** and would have failed at import. A local
+editable install masked it, because `pip install -e .` puts the source tree on `sys.path`.
+→ `backend/scripts/docker-verify.sh` now builds the real image and runs it against a real
+database. The gap was never a missing test; it was a deliverable with no test at all.
+
+**2 · Every deep link 404'd.** No SPA fallback, so `/orders` and — worse — `/checkout/success`,
+Stripe's return URL, returned 404 in production. A real payment landed on a broken page. Invisible
+locally because Vite's dev server rewrites for you. → `frontend/vercel.json`.
+
+**3 · Payments and webhooks were on different Stripe accounts.** The API charged one account while
+the webhook endpoint lived in another, so orders stayed `pending_payment` forever and the success
+page sat on "Confirming your payment". That page was *correct* — it waits for the signed webhook
+rather than trusting the redirect — but "correctly refusing to lie" and "hung" look identical from
+outside. Diagnosed by decoding the account id embedded in the publishable key the live API serves,
+which settles it in one request.
+
+**4 · The API served its own secret key.** `STRIPE_PUBLISHABLE_KEY` was set to the *secret* key.
+`/payments/config` is public by design, so the API handed a live Stripe secret to anyone who
+asked. Nothing objected, because to the code a key is just a string. → the endpoint now checks the
+prefix and returns a 503 naming the variable instead. Six regression tests assert `sk_`, `rk_` and
+`whsec_` values are never served and never appear in the response body.
+
+The through-line: each was a **boundary the tests did not cross** — the image rather than the app,
+the platform's routing rather than the router, the account rather than the API, and a config value
+whose *type* was never checked. Fail-loud config caught missing variables all along; it had nothing
+to say about a variable holding the wrong kind of value.
 
 ## AI tools used
 
