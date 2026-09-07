@@ -58,7 +58,12 @@ export function CurvedText({
   const descent = fontSize * 0.45
   const height = ascent + s + descent
 
-  const d = `M 0,${ascent} A ${radius},${radius} 0 0,${sweep} ${chord},${ascent}`
+  // A sag deeper than half the chord is a *major* arc — the long way round the circle. Without
+  // the large-arc flag the path silently falls back to the shallow minor arc, which is why the
+  // near-circular watermark arcs came out almost flat.
+  const largeArc = s > chord / 2 ? 1 : 0
+
+  const d = `M 0,${ascent} A ${radius},${radius} 0 ${largeArc},${sweep} ${chord},${ascent}`
 
   return (
     <svg
