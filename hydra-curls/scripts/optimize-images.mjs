@@ -3,7 +3,7 @@
  * Turns the raw Figma image fills into what actually ships.
  *
  *   Usage:  node scripts/optimize-images.mjs [--force]
- *   Reads:  public/assets/figma/<imageRef>.png      (77MB, gitignored, regenerable)
+ *   Reads:  assets-src/figma/<imageRef>.png          (77MB, gitignored, regenerable)
  *   Writes: public/assets/optimized/<name>-<w>.avif|.webp   + one .png fallback
  *           src/content/assets.generated.ts        typed manifest
  *
@@ -123,7 +123,11 @@ const ASSETS = [
   // --- Learn & grow -----------------------------------------------------------
   { ref: 'b782e6576017', name: 'learn-1', alt: 'Woman with curly hair against a turquoise wall' },
   { ref: '3bc9ef5886d1', name: 'learn-2', alt: 'Woman with red curls against a pink wall' },
-  { ref: 'b8ea1a21630c', name: 'learn-3', alt: 'Woman in a hat with curly hair against an orange wall' },
+  {
+    ref: 'b8ea1a21630c',
+    name: 'learn-3',
+    alt: 'Woman in a hat with curly hair against an orange wall',
+  },
 
   // --- Footer -----------------------------------------------------------------
   { ref: '71f76da46a96', name: 'logo-footer', alt: 'Parachute Advanced Hydra Curls' },
@@ -298,9 +302,10 @@ for (const asset of queue) {
     sharp(input).resize({ width: Math.min(Math.max(...widths), 768), withoutEnlargement: true })
   const fallback = existsSync(fallbackPath)
     ? await stat(fallbackPath)
-    : await (transparent
-        ? resizedFallback().png({ compressionLevel: 9, palette: true })
-        : resizedFallback().jpeg({ quality: 78, mozjpeg: true })
+    : await (
+        transparent
+          ? resizedFallback().png({ compressionLevel: 9, palette: true })
+          : resizedFallback().jpeg({ quality: 78, mozjpeg: true })
       ).toFile(fallbackPath)
   totalOut += fallback.size
 

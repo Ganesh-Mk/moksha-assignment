@@ -4,9 +4,11 @@
 > at any moment — this file is how you recover.
 
 ## Status
+
 **Phase 0 — scaffolding.** Directory was wiped and restored on 2026-09-07 (see Incidents).
 
 ## Done (admin session, 2026-09-07)
+
 - Figma token verified; REST API access confirmed on the view-only file
 - Design spec written: `../docs/figma/DESIGN_SPEC.md`
 - Extraction script written + tested: `scripts/figma-extract.mjs` (resumable)
@@ -19,6 +21,7 @@
 - `public/assets/figma/` — 95 image assets
 
 ## Next
+
 1. Re-read `CLAUDE.md`, `PLAN.md`, `../docs/figma/DESIGN_SPEC.md`
 2. **Commit immediately** — establish a restore point before any tooling runs again
 3. Scaffold Vite + React 19 + TS strict + Tailwind v4 + shadcn (no `--overwrite`)
@@ -26,6 +29,7 @@
 5. Build primitives, then sections in page order
 
 ## Section checklist (Phase 1)
+
 - [x] 1. Navbar — logo, centred links, Sheet below `lg`
 - [ ] 2. Announcement ticker
 - [x] 3. Hero — raster bg, gradient-clip headline, derived white logo, flourish, scroll cue
@@ -44,16 +48,18 @@
 - [ ] 16. Final CTA + Footer
 
 ## Decisions log
-| Date | Decision | Why |
-|---|---|---|
-| 2026-09-07 | Vite over Next.js | Single static page; Next.js weight is unjustifiable here |
-| 2026-09-07 | Montserrat replaces Gotham | Gotham is a paid Hoefler face; Montserrat is the standard free equivalent |
-| 2026-09-07 | Caveat replaces Guthen Bloots | Guthen Bloots is personal-use-licensed |
-| 2026-09-07 | SVG textPath for curved text | Figma stores it as 192 per-glyph nodes; textPath stays crisp and scalable |
-| 2026-09-07 | Slices over per-node renders | Figma rate-limits rendering; slicing full-page.png is unlimited and shows sections in context |
+
+| Date       | Decision                           | Why                                                                                                           |
+| ---------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 2026-09-07 | Vite over Next.js                  | Single static page; Next.js weight is unjustifiable here                                                      |
+| 2026-09-07 | Montserrat replaces Gotham         | Gotham is a paid Hoefler face; Montserrat is the standard free equivalent                                     |
+| 2026-09-07 | Caveat replaces Guthen Bloots      | Guthen Bloots is personal-use-licensed                                                                        |
+| 2026-09-07 | SVG textPath for curved text       | Figma stores it as 192 per-glyph nodes; textPath stays crisp and scalable                                     |
+| 2026-09-07 | Slices over per-node renders       | Figma rate-limits rendering; slicing full-page.png is unlimited and shows sections in context                 |
 | 2026-09-07 | ProductShowcase is its own section | Component 12 (y5319–6698) is separate from Benefit cards; the render is more authoritative than the prose map |
 
 ## Incidents
+
 **2026-09-07 — directory wiped by `npm create vite --overwrite`.**
 `--overwrite` empties the target directory rather than merging. `hydra-curls/` was destroyed:
 both scripts, all four planning docs, and 77MB of assets. No commits existed, so git could not
@@ -69,6 +75,7 @@ populated directory; commit before running tooling; list a directory before runn
 can delete.
 
 ## Verification harness
+
 `node scripts/shoot.mjs` screenshots the dev server at 320/375/768/1024/1440/1920 and reports,
 per width: horizontal overflow (with a selector for the offending element), tap targets under
 44px, and the heading outline. `--w`, `--clip`, `--out` narrow it to one section.
@@ -77,6 +84,7 @@ frame — positions, fills, gradients, type styles — so section work reads fro
 than from a render.
 
 ## Blocked / waiting
+
 - **The `C:` drive is 100% full (0 bytes free).** This broke Node with an out-of-memory crash and
   stops Chrome launching for Lighthouse ("Storage.getUsageAndQuota: Quota information is not
   available"). Clearing this session's scratchpad freed only 130MB. The repo itself is on `D:`
@@ -85,10 +93,11 @@ than from a render.
 - Nothing.
 
 ## Notes & surprises
+
 - The Figma file has **no auto-layout** — 47 flat, absolutely-positioned, overlapping top-level
   nodes. Structure must be derived from y-coordinates, not from node nesting.
-- Figma rate-limits the image *render* endpoint hard (~30 renders before a sustained 429, cooldown
-  in minutes). The extract script is resumable. Image *fill* downloads are unaffected.
+- Figma rate-limits the image _render_ endpoint hard (~30 renders before a sustained 429, cooldown
+  in minutes). The extract script is resumable. Image _fill_ downloads are unaffected.
 - `nodes.json` was fetched without `geometry=paths`, so VECTOR nodes carry fills but no path data.
   Re-fetch with that flag into a **separate** file (`nodes-geometry.json`) to get exact wave and
   flourish paths — do not overwrite the lean `nodes.json`.

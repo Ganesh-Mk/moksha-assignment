@@ -44,7 +44,14 @@ const { x: ox, y: oy } = frame.absoluteBoundingBox
 
 const hex = (c) =>
   '#' +
-  [c.r, c.g, c.b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('').toUpperCase()
+  [c.r, c.g, c.b]
+    .map((v) =>
+      Math.round(v * 255)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')
+    .toUpperCase()
 
 const paint = (p) => {
   if (p.visible === false) return null
@@ -77,7 +84,12 @@ const describe = (n) => {
     )
   }
   if (n.effects?.length) {
-    bits.push(n.effects.filter((e) => e.visible !== false).map((e) => e.type).join(','))
+    bits.push(
+      n.effects
+        .filter((e) => e.visible !== false)
+        .map((e) => e.type)
+        .join(','),
+    )
   }
   return bits.join(' · ')
 }

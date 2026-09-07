@@ -32,8 +32,7 @@ const BREAKPOINTS = [320, 375, 768, 1024, 1440, 1920]
 const URL = process.env.SHOOT_URL ?? 'http://localhost:5173/'
 
 const argv = process.argv.slice(2)
-const readAll = (flag) =>
-  argv.flatMap((a, i) => (a === flag ? [Number(argv[i + 1])] : []))
+const readAll = (flag) => argv.flatMap((a, i) => (a === flag ? [Number(argv[i + 1])] : []))
 const readOne = (flag, fallback) => {
   const i = argv.indexOf(flag)
   return i === -1 ? fallback : argv[i + 1]
@@ -41,7 +40,8 @@ const readOne = (flag, fallback) => {
 
 const widths = readAll('--w').length ? readAll('--w') : BREAKPOINTS
 const clipIndex = argv.indexOf('--clip')
-const clip = clipIndex === -1 ? null : { y: Number(argv[clipIndex + 1]), h: Number(argv[clipIndex + 2]) }
+const clip =
+  clipIndex === -1 ? null : { y: Number(argv[clipIndex + 1]), h: Number(argv[clipIndex + 2]) }
 const sectionIndex = readOne('--section', null)
 const outName = readOne('--out', 'page')
 const outDir = readOne('--dir', 'screenshots')
@@ -119,9 +119,10 @@ for (const width of widths) {
     const docWidth = document.documentElement.clientWidth
     const describe = (el) => {
       const id = el.id ? `#${el.id}` : ''
-      const cls = typeof el.className === 'string' && el.className
-        ? `.${el.className.trim().split(/\s+/).slice(0, 3).join('.')}`
-        : ''
+      const cls =
+        typeof el.className === 'string' && el.className
+          ? `.${el.className.trim().split(/\s+/).slice(0, 3).join('.')}`
+          : ''
       return `${el.tagName.toLowerCase()}${id}${cls}`
     }
 
