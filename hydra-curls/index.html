@@ -36,6 +36,137 @@
       name="description"
       content="Hydra Curls by Parachute Advanced — a hair care range designed for Arab curly, coily and wavy hair types 2, 3 and 4. Clinically proven 48-hour hydration."
     />
+
+    <!--
+      Scroll reveals. Inline and synchronous on purpose:
+
+      - It must run before first paint, or elements would paint visible and then jump to their
+        hidden start state — a flash worse than having no animation at all.
+      - It must not live in the main bundle, which is deliberately deferred until idle or first
+        interaction. Reveals gated behind that would leave the page looking stalled.
+
+      The order matters: the stylesheet leaves everything visible, and only the `reveal-ready`
+      class added here introduces the hidden state. If this script never runs the page is
+      simply fully visible, which is the correct failure.
+    -->
+    <script>
+      (function () {
+        var media = window.matchMedia('(prefers-reduced-motion: reduce)')
+        // Reduced motion, or a browser without IntersectionObserver: leave everything visible.
+        if (media.matches || !('IntersectionObserver' in window)) return
+
+        var root = document.documentElement
+        root.classList.add('reveal-ready')
+
+        var io = new IntersectionObserver(
+          function (entries) {
+            for (var i = 0; i < entries.length; i++) {
+              if (!entries[i].isIntersecting) continue
+              entries[i].target.setAttribute('data-revealed', '')
+              io.unobserve(entries[i].target)
+            }
+          },
+          // Fire slightly before an element reaches the viewport edge, so the movement has
+          // finished by the time it is properly in view rather than starting under the reader.
+          { rootMargin: '0px 0px -8% 0px', threshold: 0.05 }
+        )
+
+        function observe() {
+          var nodes = document.querySelectorAll('[data-reveal]:not([data-revealed])')
+          for (var i = 0; i < nodes.length; i++) io.observe(nodes[i])
+          sweep()
+        }
+
+        /*
+          Safety net. IntersectionObserver samples at frame boundaries, so anything that passes
+          through the viewport between two frames — a fast flick, a jump to an anchor, restoring
+          a scroll position on reload — never fires a callback and would stay invisible forever.
+          Measured: scrolling the page quickly left 20 of 34 elements hidden.
+
+          This sweeps anything already at or above the viewport bottom and reveals it outright.
+          rAF-throttled, and it stops listening once everything has been revealed.
+        */
+        var sweeping = false
+        function sweep() {
+          if (sweeping) return
+          sweeping = true
+          requestAnimationFrame(function () {
+            sweeping = false
+            var pending = document.querySelectorAll('[data-reveal]:not([data-revealed])')
+            for (var i = 0; i < pending.length; i++) {
+              if (pending[i].getBoundingClientRect().top < window.innerHeight) {
+                pending[i].setAttribute('data-revealed', '')
+                io.unobserve(pending[i])
+              }
+            }
+            if (!document.querySelector('[data-reveal]:not([data-revealed])')) {
+              window.removeEventListener('scroll', sweep)
+            }
+          })
+        }
+
+        window.addEventListener('scroll', sweep, { passive: true })
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', observe)
+        } else {
+          observe()
+        }
+
+        /*
+          Count-up for the stat figures. Vanilla for the same reason as the reveals: the
+          sections holding them are static HTML and never hydrate, so a React hook would simply
+          never run. The rendered text is the source of truth and the target — "48h" keeps its
+          unit and "05" keeps its padding, because the digits are swapped back into the string
+          they came from rather than replacing it.
+        */
+        var counters = document.querySelectorAll('[data-countup]')
+        if (counters.length) {
+          var cio = new IntersectionObserver(
+            function (entries) {
+              for (var i = 0; i < entries.length; i++) {
+                if (!entries[i].isIntersecting) continue
+                count(entries[i].target)
+                cio.unobserve(entries[i].target)
+              }
+            },
+            { threshold: 0.4 }
+          )
+          for (var c = 0; c < counters.length; c++) cio.observe(counters[c])
+        }
+
+        function count(el) {
+          var full = el.textContent
+          var match = full.match(/\d+/)
+          // "0 Sulfates" has nothing to count up to; leave it exactly as rendered.
+          if (!match || Number(match[0]) === 0) return
+
+          var target = Number(match[0])
+          var pad = match[0].length
+          var started = 0
+
+          function frame(now) {
+            if (!started) started = now
+            var t = Math.min((now - started) / 1400, 1)
+            var eased = 1 - Math.pow(1 - t, 3)
+            var n = String(Math.round(target * eased))
+            while (n.length < pad) n = '0' + n
+            el.textContent = full.replace(match[0], n)
+            if (t < 1) requestAnimationFrame(frame)
+          }
+
+          requestAnimationFrame(frame)
+        }
+
+        // Someone can turn reduced motion on mid-visit; honour it immediately by revealing
+        // everything and disconnecting rather than leaving content hidden.
+        media.addEventListener('change', function (e) {
+          if (!e.matches) return
+          io.disconnect()
+          root.classList.remove('reveal-ready')
+        })
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

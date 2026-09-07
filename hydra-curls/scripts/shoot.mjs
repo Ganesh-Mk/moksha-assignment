@@ -16,6 +16,11 @@
  *   at widths nobody thought to open.
  * - **Tap targets.** Interactive elements smaller than 44x44 CSS px are listed.
  *
+ * Note it deliberately defeats two runtime behaviours so the capture shows the settled page:
+ * lazy images are promoted to eager, and scroll reveals are forced to their revealed state.
+ * Both are verified separately — the lazy/eager split is reported per run, and the reveal
+ * behaviour has its own browser test — rather than being hidden by the screenshot.
+ *
  * Uses the locally installed Chrome rather than a downloaded Chromium, since Playwright's
  * browser download is blocked on this machine.
  */
@@ -74,6 +79,16 @@ for (const width of widths) {
       await new Promise((r) => setTimeout(r, 40))
     }
     window.scrollTo(0, 0)
+
+    // Same class of workaround as the eager promotion above: scroll reveals are driven by an
+    // IntersectionObserver, so a full-page capture taken from the top shows bands that were
+    // never in view as still hidden. Force every reveal to its settled state and drop the
+    // transition, so the screenshot is of the finished page rather than one mid-animation.
+    for (const el of document.querySelectorAll('[data-reveal]')) {
+      el.setAttribute('data-revealed', '')
+      el.style.transition = 'none'
+    }
+
     await Promise.all(imgs.map((img) => img.decode().catch(() => undefined)))
   })
   await page.waitForTimeout(500)

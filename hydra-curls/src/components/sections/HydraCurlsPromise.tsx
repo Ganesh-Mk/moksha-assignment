@@ -81,7 +81,9 @@ export function HydraCurlsPromise() {
 
             <dl className="relative mt-2">
               <dt className="sr-only">{promise.stat.unit}</dt>
-              <dd className="text-stat text-ink font-medium">{promise.stat.value}</dd>
+              <dd data-countup="" className="text-stat text-ink font-medium">
+                {promise.stat.value}
+              </dd>
               <p
                 aria-hidden="true"
                 className="bg-brand-cyan text-body absolute -right-6 bottom-3 -rotate-12 rounded-[0.625rem] px-3 py-1.5 text-white"

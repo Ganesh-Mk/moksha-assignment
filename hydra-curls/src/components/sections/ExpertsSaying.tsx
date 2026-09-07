@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Container } from '@/components/layout/Container'
 import { CurvedText } from '@/components/primitives/CurvedText'
 import { Eyebrow } from '@/components/primitives/Eyebrow'
@@ -40,13 +41,18 @@ export function ExpertsSaying() {
 
       <ul className="grid grid-cols-2 lg:grid-cols-4">
         {[...topRow, ...bottomRow].map((asset, index) => (
-          <li key={`${asset}-${index}`}>
+          <li
+            key={`${asset}-${index}`}
+            data-reveal=""
+            style={{ '--reveal-i': index % 4 } as CSSProperties}
+            className="overflow-hidden"
+          >
             <Picture
               asset={asset}
               // The tiles are 480x509 in Figma; fixing the ratio keeps the two rows aligned
               // regardless of each photograph's own proportions.
               className="aspect-[480/509] w-full"
-              imgClassName="h-full w-full object-cover"
+              imgClassName="h-full w-full object-cover transition-transform duration-500 hover:scale-105 motion-reduce:hover:scale-100"
               sizes="(min-width: 1024px) 25vw, 50vw"
             />
           </li>

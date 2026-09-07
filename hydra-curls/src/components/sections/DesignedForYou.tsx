@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { ChevronRight } from 'lucide-react'
 
 import { Container } from '@/components/layout/Container'
@@ -83,13 +84,13 @@ export function DesignedForYou() {
       </Container>
 
       <ul className="xl:px-gutter mt-14 grid gap-6 px-5 md:grid-cols-2 md:px-10 lg:grid-cols-3">
-        {hairTypes.items.map((type) => (
-          <li key={type.label}>
+        {hairTypes.items.map((type, index) => (
+          <li key={type.label} data-reveal="" style={{ '--reveal-i': index } as CSSProperties}>
             <article className="group relative isolate aspect-[619/774] overflow-hidden rounded-lg">
               <Picture
                 asset={type.image}
                 className="absolute inset-0 -z-10 h-full w-full"
-                imgClassName="h-full w-full object-cover"
+                imgClassName="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:group-hover:scale-100"
                 sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
               />
 

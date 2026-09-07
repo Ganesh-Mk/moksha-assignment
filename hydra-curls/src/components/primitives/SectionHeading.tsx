@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 import type { HeadingLine } from '@/content/sections'
 import { cn } from '@/lib/utils'
 
@@ -41,7 +43,13 @@ export function SectionHeading({
     // `text-wrap: normal` overrides the base `balance` on headings: the designed line breaks
     // come from the data, so letting the browser rebalance them produces a break the design
     // does not have.
-    <Tag id={id} className={cn('text-h2 text-ink font-medium [text-wrap:normal]', className)}>
+    <Tag
+      id={id}
+      data-reveal=""
+      // One step behind the eyebrow above it, so the pair reads top-down rather than together.
+      style={{ '--reveal-i': 1 } as CSSProperties}
+      className={cn('text-h2 text-ink font-medium [text-wrap:normal]', className)}
+    >
       {lines.map((line, lineIndex) => (
         // Lines and runs are positional content with no stable id; the index is the identity.
         // eslint-disable-next-line react/no-array-index-key

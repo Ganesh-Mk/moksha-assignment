@@ -20,6 +20,9 @@ export function StatBlock({ value, label, className, size = 'compact' }: StatBlo
     <div className={cn('text-center', className)}>
       <dt className="sr-only">{label}</dt>
       <dd
+        // Animated by the inline count-up script in index.html. These sections are static
+        // HTML and never hydrate, so this cannot be a React hook.
+        data-countup=""
         className={cn(
           'font-medium',
           // `hero` sits on the pale promise band and needs the readable cyan; `compact` sits

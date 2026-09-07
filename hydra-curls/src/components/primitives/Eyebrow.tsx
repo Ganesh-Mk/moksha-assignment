@@ -33,6 +33,9 @@ export function Eyebrow({
 }: EyebrowProps) {
   return (
     <p
+      // Every band opens with one of these, so the reveal lives on the primitive rather than
+      // being repeated in sixteen sections.
+      data-reveal=""
       className={cn(
         'font-hand text-lead leading-script tracking-[0.1em]',
         tone === 'dark' ? 'text-black' : 'text-white',

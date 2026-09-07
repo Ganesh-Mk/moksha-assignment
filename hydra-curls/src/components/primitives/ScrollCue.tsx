@@ -1,6 +1,10 @@
+import type { CSSProperties } from 'react'
+
 import { cn } from '@/lib/utils'
 
 interface ScrollCueProps {
+  /** Carries the entrance-stagger custom property; the cue is last in the hero sequence. */
+  style?: CSSProperties
   /** Where the cue scrolls to. */
   href: string
   label: string
@@ -14,10 +18,11 @@ interface ScrollCueProps {
  * A real link rather than a decorative glyph, so it works with a keyboard and actually moves
  * the page — the design implies the affordance and leaving it inert would be a broken promise.
  */
-export function ScrollCue({ href, label, className }: ScrollCueProps) {
+export function ScrollCue({ href, label, className, style }: ScrollCueProps) {
   return (
     <a
       href={href}
+      style={style}
       className={cn(
         'inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5',
         className,

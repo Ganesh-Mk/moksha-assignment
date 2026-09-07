@@ -33,6 +33,7 @@ export function LearnAndGrow() {
         {learn.items.map((item, index) => (
           <li
             key={index}
+            data-reveal=""
             className={cn(
               'grid lg:grid-cols-2',
               // The panel is the second cell in the DOM either way, so the image side is

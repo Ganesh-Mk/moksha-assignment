@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Check, Heart, Leaf, type LucideIcon } from 'lucide-react'
 
 import { Container } from '@/components/layout/Container'
@@ -53,10 +54,12 @@ export function PremiumIngredients() {
         </p>
 
         <ul className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {ingredients.cards.map((card) => (
+          {ingredients.cards.map((card, index) => (
             <li
               key={card.name}
-              className="relative isolate overflow-hidden rounded-[1.25rem] border border-black/15 p-6"
+              data-reveal=""
+              style={{ '--reveal-i': index + 1 } as CSSProperties}
+              className="relative isolate overflow-hidden rounded-[1.25rem] border border-black/15 p-6 transition-transform duration-300 hover:-translate-y-1 motion-reduce:hover:translate-y-0"
             >
               <Picture
                 asset={card.image}

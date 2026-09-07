@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 import { Picture } from '@/components/primitives/Picture'
 import { ScrollCue } from '@/components/primitives/ScrollCue'
 import { WaveDivider } from '@/components/primitives/WaveDivider'
@@ -30,7 +32,8 @@ export function Hero() {
   return (
     <section
       id="top"
-      className="bg-brand-purple relative isolate min-h-[clamp(30rem,59vw,70.8125rem)] w-full overflow-hidden"
+      // pt clears the now-fixed navbar, which no longer takes space in the flow.
+      className="bg-brand-purple relative isolate min-h-[clamp(30rem,59vw,70.8125rem)] w-full overflow-hidden pt-[4.375rem] md:pt-25"
     >
       <Picture
         asset="hero-background"
@@ -56,12 +59,15 @@ export function Hero() {
           // navy square dark, because the two differ in hue rather than brightness.
           asset="logo-lockup-hero"
           alt={`${site.brand} ${site.product}`}
-          className="w-[clamp(8rem,10.6vw,12.75rem)]"
+          className="hero-enter w-[clamp(8rem,10.6vw,12.75rem)]"
           sizes="(min-width: 1280px) 204px, 160px"
           priority
         />
 
-        <h1 className="text-gradient-headline font-script text-display mt-[3.5%] max-w-[68rem]">
+        <h1
+          className="text-gradient-headline hero-enter font-script text-display mt-[3.5%] max-w-[68rem]"
+          style={{ '--enter-i': 1 } as CSSProperties}
+        >
           {hero.headlineLines.map((line) => (
             <span key={line} className="inline md:block">
               {line}{' '}
@@ -75,7 +81,8 @@ export function Hero() {
           aria-hidden="true"
           focusable="false"
           viewBox="0 0 471 16"
-          className="mt-[2.5%] h-4 w-[clamp(12rem,24.5vw,29.4375rem)]"
+          className="hero-enter mt-[2.5%] h-4 w-[clamp(12rem,24.5vw,29.4375rem)]"
+          style={{ '--enter-i': 2 } as CSSProperties}
           fill="none"
         >
           <defs>
@@ -96,7 +103,8 @@ export function Hero() {
         <ScrollCue
           href="#new-launch"
           label="Scroll to the Hydra Curls range"
-          className="text-brand-purple-light/70 mt-[2%]"
+          className="hero-enter animate-cue text-brand-purple-light/70 mt-[2%]"
+          style={{ '--enter-i': 3 } as CSSProperties}
         />
       </div>
 
