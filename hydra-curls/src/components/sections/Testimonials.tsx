@@ -49,11 +49,16 @@ export function Testimonials() {
           copy column carries the gutter. */}
       <div className="grid items-center gap-12 lg:grid-cols-[56.8%_1fr] lg:gap-0">
         <div className="relative">
+          {/* The source is a 1024x1536 portrait; Figma's node is 1091x993, so the design crops
+              it hard to landscape and anchors the face at the top. Rendering it at its natural
+              aspect makes this band roughly twice as tall as designed. The clipped corner
+              matches the diagonal Figma cuts across the bottom edge. */}
           <Picture
             asset="testimonial-model"
             alt="Customer before and after using Hydra Curls"
-            className="w-full"
-            sizes="(min-width: 1024px) 52vw, 100vw"
+            className="aspect-[1091/993] w-full [clip-path:polygon(0_0,100%_0,100%_93%,0_100%)]"
+            imgClassName="h-full w-full object-cover object-top"
+            sizes="(min-width: 1024px) 57vw, 100vw"
           />
           {/* The comparison seam. Presentational: the "before" and "after" are already
               composited into the single exported image. */}

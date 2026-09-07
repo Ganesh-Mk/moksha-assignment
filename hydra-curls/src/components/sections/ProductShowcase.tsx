@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { CurvedText } from '@/components/primitives/CurvedText'
 import { Picture } from '@/components/primitives/Picture'
+import { WaveDivider } from '@/components/primitives/WaveDivider'
 import {
   Carousel,
   CarouselContent,
@@ -57,11 +58,27 @@ export function ProductShowcase() {
         The Hydra Curls range
       </h2>
 
+      {/* The approach into the band: cloud art bleeding off the left (Figma y3935, 729x416)
+          and then the second cyan wave (`Rectangle 140`, y4273). The wave's underside is
+          purple because the circle below is already at full width by the time it meets it. */}
+      <div className="relative">
+        <Picture
+          asset="clouds"
+          alt=""
+          className="pointer-events-none w-[38%] max-w-[45.5625rem]"
+          sizes="38vw"
+        />
+        <WaveDivider className="-mt-[6%]" belowClassName="fill-brand-purple" />
+      </div>
+
       {/* The three circles. 2052px across against a 1920px frame, bottom-anchored so the
           section clips everything above — the underside of the circle is the whole shape.
           The translucent pair sits 46px and 91px lower (2.24% and 4.44% of the diameter),
           which is what leaves the pale rims visible beneath the solid edge. */}
-      <div className="relative">
+      {/* `overflow-hidden` here, not just on the section: the circle is taller than this
+          wrapper and would otherwise ride up over the wave and clouds above it. Clipping at
+          the wrapper gives the flat top edge that meets the wave. */}
+      <div className="relative overflow-hidden">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute bottom-0 left-1/2 aspect-square w-[107%] -translate-x-1/2"
