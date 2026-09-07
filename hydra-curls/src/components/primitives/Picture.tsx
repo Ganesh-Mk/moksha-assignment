@@ -49,7 +49,9 @@ export function Picture({
     manifest.widths.map((w) => `${formats[w]} ${w}w`).join(', ')
 
   return (
-    <picture className={className}>
+    // <picture> is display:inline by default, which silently drops width, height and
+    // aspect-ratio applied to it. Making it a block is what lets a caller size the box.
+    <picture className={cn('block', className)}>
       <source type="image/avif" srcSet={srcset(manifest.avif)} sizes={sizes} />
       <source type="image/webp" srcSet={srcset(manifest.webp)} sizes={sizes} />
       <img

@@ -50,6 +50,18 @@ export const newLaunch = {
   secondaryCta: 'Learn Curly Girl Method',
 } as const
 
+/* ------------------------------------------------------------ Brand key visual --- */
+
+export const brandKeyVisual = {
+  heading: 'The Hydra Curls range',
+  /**
+   * The campaign artwork is a single raster with all of its typography baked in, so the alt
+   * text has to reproduce that copy — otherwise a screen-reader user loses every claim the
+   * band makes. Transcribed from the image, in reading order.
+   */
+  alt: 'Parachute Advanced Hydra Curls. Best of hydrating ingredients: hyaluron, coconut and avocado. No SLS, silicones or parabens. 48-hour hydration. The full range — hydrating mask, hydrating shampoo, hydrating conditioner, defining cream and defining gel — with a model with curly hair. Designed for Arab curly, coily and wavy hair.',
+} as const
+
 /* --------------------------------------------------------------- Benefit cards --- */
 
 export interface BenefitCard {

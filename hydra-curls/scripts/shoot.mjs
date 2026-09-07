@@ -6,6 +6,7 @@
  *   node scripts/shoot.mjs                        all breakpoints, full page
  *   node scripts/shoot.mjs --w 375 --w 1440       only these widths
  *   node scripts/shoot.mjs --clip 0 1400          only this y-range (one section)
+ *   node scripts/shoot.mjs --section 3            only the 4th <section>, measured in the DOM
  *   node scripts/shoot.mjs --out hero             name the output files
  *
  * Beyond the images it runs two checks that are tedious to do by eye and easy to regress:
@@ -36,6 +37,7 @@ const readOne = (flag, fallback) => {
 const widths = readAll('--w').length ? readAll('--w') : BREAKPOINTS
 const clipIndex = argv.indexOf('--clip')
 const clip = clipIndex === -1 ? null : { y: Number(argv[clipIndex + 1]), h: Number(argv[clipIndex + 2]) }
+const sectionIndex = readOne('--section', null)
 const outName = readOne('--out', 'page')
 const outDir = readOne('--dir', 'screenshots')
 
@@ -50,16 +52,44 @@ for (const width of widths) {
   })
   const page = await context.newPage()
   await page.goto(URL, { waitUntil: 'networkidle' })
-  // Lazy images below the fold never decode unless the page is actually scrolled through.
+
+  // Count the lazy/eager split *before* forcing anything, so the loading strategy is still
+  // verified even though the capture below has to defeat it.
+  const loading = await page.evaluate(() => {
+    const imgs = [...document.querySelectorAll('img')]
+    return { total: imgs.length, eager: imgs.filter((i) => i.loading === 'eager').length }
+  })
+
+  // Chrome does not paint lazy images that sit outside the original viewport when it takes a
+  // fullPage screenshot — they come out blank even though the page is perfectly fine. Scrolling
+  // through is not enough, because the decoded frames are evicted again on the way back up. So
+  // every image is promoted to eager and explicitly decoded before the capture.
+  // This is a screenshot-harness workaround, not a change to how the page loads.
   await page.evaluate(async () => {
+    const imgs = [...document.querySelectorAll('img')]
+    for (const img of imgs) img.loading = 'eager'
     const step = window.innerHeight
     for (let y = 0; y < document.body.scrollHeight; y += step) {
       window.scrollTo(0, y)
-      await new Promise((r) => setTimeout(r, 60))
+      await new Promise((r) => setTimeout(r, 40))
     }
     window.scrollTo(0, 0)
+    await Promise.all(imgs.map((img) => img.decode().catch(() => undefined)))
   })
-  await page.waitForTimeout(400)
+  await page.waitForTimeout(500)
+
+  // Clipping by hand-counted y offsets goes stale the moment a band above changes height.
+  // `--section N` asks the page where that section actually is.
+  let band = clip
+  if (sectionIndex !== null) {
+    band = await page.evaluate((i) => {
+      const el = document.querySelectorAll('main > section, header')[Number(i)]
+      if (!el) return null
+      const r = el.getBoundingClientRect()
+      return { y: Math.round(r.top + window.scrollY), h: Math.round(r.height) }
+    }, sectionIndex)
+    if (!band) throw new Error(`no section at index ${sectionIndex}`)
+  }
 
   const file = `${outDir}/${outName}-${width}.png`
   // `clip` is viewport-relative unless the shot is a full-page one, so `fullPage` stays on in
@@ -67,7 +97,7 @@ for (const width of widths) {
   await page.screenshot({
     path: file,
     fullPage: true,
-    ...(clip ? { clip: { x: 0, y: clip.y, width, height: clip.h } } : {}),
+    ...(band ? { clip: { x: 0, y: band.y, width, height: band.h } } : {}),
   })
 
   const report = await page.evaluate(() => {
@@ -125,7 +155,8 @@ for (const width of widths) {
     `${String(width).padStart(4)}px  h=${String(report.height).padStart(6)}  ` +
       `${scrolls ? `✖ SCROLLS (${report.scrollWidth} > ${report.clientWidth})` : '✓ no h-scroll'}` +
       `${report.overflowCount ? `  ✖ ${report.overflowCount} overflowing` : ''}` +
-      `${report.small.length ? `  ✖ ${report.small.length} small targets` : ''}`,
+      `${report.small.length ? `  ✖ ${report.small.length} small targets` : ''}` +
+      `  img ${loading.eager}/${loading.total} eager`,
   )
   for (const o of report.overflow) console.log(`        overflow: ${o}`)
   for (const s of report.small) console.log(`        tap<44px: ${s}`)
