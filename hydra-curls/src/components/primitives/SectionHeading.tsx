@@ -36,7 +36,10 @@ export function SectionHeading({
   const accentClass = accent === 'cyan' ? 'text-brand-cyan' : 'text-white'
 
   return (
-    <Tag id={id} className={cn('text-h2 text-ink font-medium', className)}>
+    // `text-wrap: normal` overrides the base `balance` on headings: the designed line breaks
+    // come from the data, so letting the browser rebalance them produces a break the design
+    // does not have.
+    <Tag id={id} className={cn('text-h2 text-ink font-medium [text-wrap:normal]', className)}>
       {lines.map((line, lineIndex) => (
         // Lines and runs are positional content with no stable id; the index is the identity.
         // eslint-disable-next-line react/no-array-index-key
