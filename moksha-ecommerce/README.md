@@ -259,6 +259,35 @@ So the order is:
    endpoint has its own.
 3. *Then* set `ENVIRONMENT=production` and redeploy, so the guard is armed for the demo.
 
+**Register the Stripe webhook endpoint — this is a separate step from setting the keys, and
+nothing warns you if you skip it.** Without it, payments succeed at Stripe and the order stays
+`pending_payment` forever: the success page sits on "Confirming your payment", because it waits
+for the signed webhook rather than trusting the redirect. That is the design working correctly,
+and it is indistinguishable from a hang if the endpoint was never registered.
+
+In the Stripe Dashboard → **Developers → Webhooks → Add endpoint**:
+
+| | |
+|---|---|
+| **URL** | `https://<your-api-host>/api/v1/payments/webhook` |
+| **Events** | `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` |
+
+Then copy **that endpoint's** signing secret into `STRIPE_WEBHOOK_SECRET` on the API host. It is
+**not** the secret `stripe listen` prints — that one belongs to the CLI's forwarding session and
+will fail signature verification against dashboard deliveries.
+
+To confirm the endpoint is live before sending a real payment, POST to it unsigned. A correct
+deployment answers `400 webhook_signature_invalid` — reachable, and refusing what it cannot
+verify:
+
+```bash
+curl -X POST https://<your-api-host>/api/v1/payments/webhook      -H 'Content-Type: application/json' -d '{}'
+```
+
+Orders stranded by a missing endpoint are recoverable: register it, then **Resend** the past event
+from the Stripe Dashboard. The `stripe_events` ledger makes replay safe, so the order settles
+exactly once.
+
 **`frontend/vercel.json` — the SPA fallback.** Without it, `/orders` returns 404 in production.
 Vercel serves the build as static files, and there is no `orders` file on disk — the route only
 exists inside React Router, once the JavaScript has loaded. Only `/` worked, so any refresh,
