@@ -49,3 +49,10 @@ docs/figma/reference/sections/
 docs/figma/reference/slices/
 hydra-curls/public/assets/figma/
 # Keep docs/figma/reference/full-page.png — the single reference render worth versioning.
+
+# Working draft, not a deliverable
+docs/SUBMISSION_EMAIL.md
+
+# Stripe CLI endpoint dumps contain the webhook signing secret
+.stripe_ep.json
+.stripe_*.json

@@ -41,6 +41,12 @@ const CheckoutSuccessPage = lazy(() =>
 const CheckoutCancelledPage = lazy(() =>
   import("@/pages/CheckoutResultPage").then((m) => ({ default: m.CheckoutCancelledPage })),
 );
+// Lazy for the same reason as the admin screens: it is a wall of prose almost
+// nobody opens, and Google's consent screen links to it directly rather than
+// visitors reaching it from the catalogue.
+const PrivacyPage = lazy(() =>
+  import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
+);
 
 function RouteFallback() {
   return (
@@ -77,6 +83,7 @@ export function App() {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/products/:slug" element={<ProductDetailPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
 
             <Route
               path="/orders"
@@ -171,6 +178,9 @@ function Footer() {
         <nav className="flex gap-4" aria-label="Footer">
           <Link to="/products" className="rounded-sm transition-colors hover:text-ink">
             Shop
+          </Link>
+          <Link to="/privacy" className="rounded-sm transition-colors hover:text-ink">
+            Privacy
           </Link>
           <a
             href={`${import.meta.env["VITE_API_URL"] ?? ""}/../docs`}
