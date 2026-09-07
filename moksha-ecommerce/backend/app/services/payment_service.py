@@ -24,7 +24,7 @@ avoid.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 import stripe
 from sqlalchemy import select
@@ -157,7 +157,10 @@ def verify_webhook(payload: bytes, signature_header: str | None) -> stripe.Event
         raise WebhookVerificationError("Missing Stripe-Signature header.")
 
     try:
-        return stripe.Webhook.construct_event(payload, signature_header, webhook_secret)
+        event = stripe.Webhook.construct_event(payload, signature_header, webhook_secret)
+        # `construct_event` is annotated as returning Any upstream; the cast documents what it
+        # actually returns rather than letting Any leak into every caller.
+        return cast(stripe.Event, event)
     except ValueError as exc:
         raise WebhookVerificationError("Malformed webhook payload.") from exc
     except stripe.SignatureVerificationError as exc:

@@ -18,13 +18,16 @@ present. It is not a provider abstraction — there is one provider, wired direc
 
 from __future__ import annotations
 
-from typing import Annotated, TypedDict
+from collections.abc import Awaitable, Callable
+from typing import Annotated, Any, TypedDict
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, AnyMessage, SystemMessage
+from langchain_core.messages import AIMessage, AnyMessage, BaseMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langchain_core.tools import StructuredTool
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 
 from app.agent.prompts import SYSTEM_PROMPT
@@ -47,8 +50,18 @@ class AgentState(TypedDict):
     steps: int
 
 
-def _agent_node(model: BaseChatModel, max_steps: int):  # type: ignore[no-untyped-def]
-    async def agent(state: AgentState) -> dict[str, object]:
+# What `bind_tools` returns: a Runnable, not a BaseChatModel. Typed explicitly rather than
+# loosened to Any, so a future change to the binding is caught here.
+BoundModel = Runnable[list[BaseMessage], BaseMessage]
+
+
+def _agent_node(
+    model: BoundModel, max_steps: int
+) -> Callable[[AgentState], Awaitable[dict[str, Any]]]:
+    # A node returns a *partial* state — only the keys it changes — which LangGraph merges via
+    # the reducers on AgentState. `dict[str, Any]` rather than AgentState for exactly that
+    # reason: a node that returned the full state would have to invent values it does not own.
+    async def agent(state: AgentState) -> dict[str, Any]:
         steps = state.get("steps", 0)
 
         if steps >= max_steps:
@@ -87,7 +100,9 @@ def _should_continue(state: AgentState) -> str:
     return END
 
 
-def build_graph(*, model: BaseChatModel, tools: list[StructuredTool], max_steps: int = 6):  # type: ignore[no-untyped-def]
+def build_graph(
+    *, model: BaseChatModel, tools: list[StructuredTool], max_steps: int = 6
+) -> CompiledStateGraph[AgentState, None, AgentState, AgentState]:
     """Compile the graph for one request.
 
     Compiled per request because the tools are bound to that request's database session and
@@ -97,7 +112,11 @@ def build_graph(*, model: BaseChatModel, tools: list[StructuredTool], max_steps:
     """
     builder = StateGraph(AgentState)
 
-    builder.add_node("agent", _agent_node(model.bind_tools(tools), max_steps))
+    # `add_node`'s overloads infer their node type from the callable passed inline; they do not
+    # accept an explicitly-annotated `Callable` alias, even a structurally identical one. The
+    # node itself is fully typed — this ignore is about langgraph's overload resolution, not
+    # about an unknown type on our side.
+    builder.add_node("agent", _agent_node(model.bind_tools(tools), max_steps))  # type: ignore[call-overload]
     builder.add_node("tools", ToolNode(tools))
 
     builder.add_edge(START, "agent")

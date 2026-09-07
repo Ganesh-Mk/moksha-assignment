@@ -220,7 +220,8 @@ async def create_product(session: AsyncSession, data: dict[str, object]) -> Prod
         # unique index. The index still exists as the real guarantee against a race here.
         raise ConflictError(f"A product with the slug “{slug}” already exists.")
 
-    product = Product(**data)  # type: ignore[arg-type]  # keys are validated by ProductCreate
+    # Keys are constrained by ProductCreate, which is what validated this dict.
+    product = Product(**data)
     session.add(product)
     await session.commit()
     await session.refresh(product)

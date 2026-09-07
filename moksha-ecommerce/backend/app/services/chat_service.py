@@ -12,9 +12,11 @@ from collections.abc import AsyncIterator
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
+from langgraph.graph.state import CompiledStateGraph
+from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent.graph import build_graph
+from app.agent.graph import AgentState, build_graph
 from app.agent.tools import build_tools
 from app.config import settings
 from app.core.exceptions import RateLimitError, ValidationError
@@ -79,12 +81,14 @@ def build_chat_model() -> BaseChatModel:
     from langchain_anthropic import ChatAnthropic
 
     return ChatAnthropic(
-        model_name=settings.agent_model,
-        api_key=settings.require_anthropic(),  # type: ignore[arg-type]
+        # `model` is the field; `model_name` is its alias. Using the field name keeps this
+        # type-checked rather than relying on populate-by-alias.
+        model=settings.agent_model,
+        api_key=SecretStr(settings.require_anthropic()),
         # Low but non-zero: this agent reports facts from tools, and creative variation in a
         # price or an order status is not a feature.
         temperature=0.2,
-        max_tokens_to_sample=1024,
+        max_tokens=1024,
         timeout=30,
         stop=None,
     )
@@ -126,7 +130,7 @@ def _prepare(
     message: str,
     history: list[dict[str, str]] | None,
     model: BaseChatModel | None,
-):  # type: ignore[no-untyped-def]
+) -> tuple[CompiledStateGraph[AgentState, None, AgentState, AgentState], AgentState]:
     """Validate, rate-limit, and compile the graph. Shared by both entry points.
 
     Rate limiting happens here rather than in the router so it applies however the agent is
@@ -141,7 +145,11 @@ def _prepare(
         tools=build_tools(session, user),
         max_steps=settings.agent_max_steps,
     )
-    state = {"messages": _to_messages(history or [], text), "user_id": user.id, "steps": 0}
+    state: AgentState = {
+        "messages": list(_to_messages(history or [], text)),
+        "user_id": user.id,
+        "steps": 0,
+    }
 
     logger.info("chat_started", extra={"user_id": user.id, "message_length": len(text)})
     return graph, state

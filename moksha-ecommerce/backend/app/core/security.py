@@ -68,7 +68,9 @@ class GoogleJwksVerifier:
 
     def verify(self, id_token: str) -> GoogleIdentity:
         try:
-            claims: dict[str, Any] = google_id_token.verify_oauth2_token(
+            # google-auth ships no stubs for this function, so mypy sees an untyped call.
+            # Narrowed immediately below by reading only the claims we need.
+            claims: dict[str, Any] = google_id_token.verify_oauth2_token(  # type: ignore[no-untyped-call]
                 id_token, self._request, self._client_id
             )
         except ValueError as exc:
