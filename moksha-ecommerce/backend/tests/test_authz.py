@@ -58,6 +58,7 @@ CUSTOMER_ROUTES = [
     (m, p)
     for m, p in ALL_ROUTES
     if p.startswith(f"{API}/orders")
+    or p.startswith(f"{API}/chat")
     or p
     in {
         f"{API}/auth/me",

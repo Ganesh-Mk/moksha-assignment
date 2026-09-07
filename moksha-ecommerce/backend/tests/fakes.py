@@ -19,7 +19,13 @@ import hashlib
 import hmac
 import json
 import time
+from collections.abc import AsyncIterator
 from typing import Any
+
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
+from pydantic import Field
 
 from app.core.exceptions import AuthenticationError
 from app.core.security import GoogleIdentity
@@ -125,3 +131,93 @@ def checkout_session(
         "currency": "inr",
         "status": "complete" if payment_status == "paid" else "open",
     }
+
+
+class ScriptedChatModel(BaseChatModel):
+    """A stub LLM that replays a fixed script of turns.
+
+    Substituted at `chat_service`'s model seam, which is what lets the agent tests — including
+    the prompt-injection ones — run with no ANTHROPIC_API_KEY and no network.
+
+    A stub rather than a recorded transcript, deliberately. These tests assert on what the tools
+    and services *do* when a model asks for something, not on whether a particular model happens
+    to phrase a request a particular way. Scripting the tool call makes the security assertion
+    deterministic: the test does not depend on whether the model chooses to take the bait, only
+    on what happens when it does.
+    """
+
+    # Pydantic fields (BaseChatModel is a pydantic model), so default_factory rather than a
+    # bare list — a shared default here would leak one test's script into the next.
+    responses: list[BaseMessage] = Field(default_factory=list)
+    calls: list[list[BaseMessage]] = Field(default_factory=list)
+    bound_tools: list[Any] = Field(default_factory=list)
+
+    def __init__(self, responses: list[BaseMessage], **kwargs: Any) -> None:
+        super().__init__(responses=list(responses), calls=[], **kwargs)
+
+    @property
+    def _llm_type(self) -> str:
+        return "scripted-test-model"
+
+    def bind_tools(self, tools: Any, **kwargs: Any) -> ScriptedChatModel:
+        # The tool schemas are recorded rather than used: `test_agent_authz` asserts directly
+        # that no order tool exposes a user field for a model to fill in.
+        self.bound_tools = list(tools)  # type: ignore[attr-defined]
+        return self
+
+    def _generate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        self.calls.append(list(messages))
+        if self.responses:
+            message = self.responses.pop(0)
+        else:
+            message = AIMessage(content="No further response scripted.")
+        return ChatResult(generations=[ChatGeneration(message=message)])
+
+    async def _agenerate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        return self._generate(messages, stop, run_manager, **kwargs)
+
+    async def _astream(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        """Emit the scripted turn as chunks.
+
+        Implemented so the SSE path is covered by the suite rather than only by manual testing.
+        Text is split into words to make it a genuine multi-chunk stream — a single-chunk stream
+        would pass even if the endpoint were quietly buffering the whole reply.
+        """
+        result = self._generate(messages, stop, run_manager, **kwargs)
+        message = result.generations[0].message
+
+        if isinstance(message, AIMessage) and message.tool_calls:
+            yield ChatGenerationChunk(
+                message=AIMessageChunk(content="", tool_calls=message.tool_calls)
+            )
+            return
+
+        text = message.content if isinstance(message.content, str) else ""
+        for word in text.split(" "):
+            yield ChatGenerationChunk(message=AIMessageChunk(content=word + " "))
+
+
+def tool_call_message(name: str, args: dict[str, Any], call_id: str = "call_1") -> AIMessage:
+    """An assistant turn that requests one tool call."""
+    return AIMessage(
+        content="",
+        tool_calls=[{"name": name, "args": args, "id": call_id, "type": "tool_call"}],
+    )

@@ -21,6 +21,16 @@ logger = get_logger(__name__)
 MAX_PAGE_SIZE = 100
 
 
+def _escape_like(value: str) -> str:
+    """Escape ILIKE wildcards in user input.
+
+    Unescaped, a search for "%" returns the whole catalogue and "_" matches any single
+    character — surprising for a customer, and a small information leak on the admin listing
+    that includes withdrawn products.
+    """
+    return value.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
+
+
 @dataclass(frozen=True)
 class ProductFilters:
     """Everything the catalogue can be narrowed by.
@@ -58,8 +68,7 @@ def _apply_filters(stmt: Select[tuple[Product]], filters: ProductFilters) -> Sel
         # scaling note says so — the fix is a tsvector column with a GIN index, or a search
         # service. At a twelve-product catalogue, adding either now would be unjustifiable.
         # The wildcards are escaped so a query containing % does not match everything.
-        term = filters.search.strip().replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
-        pattern = f"%{term}%"
+        pattern = f"%{_escape_like(filters.search.strip())}%"
         stmt = stmt.where(or_(Product.name.ilike(pattern), Product.description.ilike(pattern)))
 
     return stmt
@@ -151,13 +160,34 @@ async def find_product(session: AsyncSession, query: str) -> Product | None:
     if exact_name is not None:
         return exact_name
 
-    escaped = term.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
-    return (
+    escaped = _escape_like(term)
+    contains = (
         await session.execute(
             select(Product)
             .where(Product.name.ilike(f"%{escaped}%"), Product.is_active.is_(True))
+            .order_by(func.length(Product.name))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if contains is not None:
+        return contains
+
+    # Finally, every word somewhere in the name. Customers say "curl gel"; the product is
+    # "Curl Defining Gel", so a contiguous substring match misses it. AND rather than OR: any
+    # word matching would make "gel" return the first product containing "the".
+    words = [w for w in term.split() if len(w) > 2]
+    if not words:
+        return None
+
+    return (
+        await session.execute(
+            select(Product)
+            .where(
+                Product.is_active.is_(True),
+                *[Product.name.ilike(f"%{_escape_like(w)}%") for w in words],
+            )
             # Shortest name first: for "curl gel", "Curl Defining Gel" should beat a longer
-            # product that merely contains the words.
+            # product that merely happens to contain both words.
             .order_by(func.length(Product.name))
             .limit(1)
         )

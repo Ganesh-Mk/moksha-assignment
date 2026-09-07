@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import admin, auth, health, orders, payments, products
+from app.api.v1 import admin, auth, chat, health, orders, payments, products
 
 api_router = APIRouter()
 
@@ -26,6 +26,10 @@ api_router.include_router(orders.router, prefix="/orders", tags=["orders"])
 # Mixed: creating a checkout session requires the caller to own the order; the webhook is public
 # but authenticated by Stripe's signature, because Stripe has no bearer token to send.
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
+
+# Authenticated. The agent's tools are bound to the caller's verified identity, so there is no
+# tool argument through which a prompt could redirect them at someone else's data.
+api_router.include_router(chat.router, prefix="/chat", tags=["ai-agent"])
 
 # Admin-only. The dependency is declared on the router itself, so a route added there later is
 # protected whether or not its author remembers to protect it.
