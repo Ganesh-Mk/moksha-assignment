@@ -259,6 +259,30 @@ So the order is:
    endpoint has its own.
 3. *Then* set `ENVIRONMENT=production` and redeploy, so the guard is armed for the demo.
 
+**`frontend/vercel.json` — the SPA fallback.** Without it, `/orders` returns 404 in production.
+Vercel serves the build as static files, and there is no `orders` file on disk — the route only
+exists inside React Router, once the JavaScript has loaded. Only `/` worked, so any refresh,
+bookmark, or link shared into Slack broke. Vite's dev server rewrites unmatched paths to
+`index.html` for you, which is exactly why this is invisible until it is deployed.
+
+```json
+{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+```
+
+The catch-all looks like it would swallow every asset, and it does not: Vercel gives
+**precedence to the filesystem before rewrites are applied**, so anything that exists on disk is
+served as itself and only unmatched paths fall through to the shell.
+
+That ordering is load-bearing here rather than incidental, because this app has a genuine
+collision — `/products/:slug` is a React Router route *and* `/products/*.svg` is a real directory
+of generated product artwork. Filesystem-first is what lets `/products/argan-hair-oil.svg` return
+the image while `/products/argan-hair-oil` returns the app. If rewrites ran first, every product
+image on the catalogue would be broken.
+
+The Stripe return URLs (`/checkout/success`, `/checkout/cancelled`) depend on this too — they are
+entered by a redirect from an external origin, which is a cold page load, not client-side
+navigation.
+
 **Migrations and connection pooling.** `MIGRATION_DATABASE_URL` is optional and overrides
 `DATABASE_URL` for Alembic only. On Neon, point it at the **direct** endpoint while the app keeps
 the pooled one: the pooled endpoint is PgBouncer in transaction mode, which hands each transaction
