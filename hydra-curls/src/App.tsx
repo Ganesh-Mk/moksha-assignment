@@ -4,6 +4,7 @@ import { BrandKeyVisual } from '@/components/sections/BrandKeyVisual'
 import { PremiumIngredients } from '@/components/sections/PremiumIngredients'
 import { ProductShowcase } from '@/components/sections/ProductShowcase'
 import { Testimonials } from '@/components/sections/Testimonials'
+import { DesignedForYou } from '@/components/sections/DesignedForYou'
 import { ExpertsSaying } from '@/components/sections/ExpertsSaying'
 import { Hero } from '@/components/sections/Hero'
 import { HydraCurlsPromise } from '@/components/sections/HydraCurlsPromise'
@@ -23,6 +24,7 @@ export default function App() {
         <PremiumIngredients />
         <Testimonials />
         <ExpertsSaying />
+        <DesignedForYou />
       </main>
     </>
   )
