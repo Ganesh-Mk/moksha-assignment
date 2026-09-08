@@ -106,6 +106,33 @@ export interface DashboardStats {
   low_stock: { id: number; name: string; slug: string; stock: number }[];
 }
 
+export interface TimeSeriesPoint {
+  date: string;
+  revenue_cents: number;
+  orders: number;
+  customers: number;
+  products: number;
+}
+
+export interface TimeSeries {
+  start: string;
+  end: string;
+  points: TimeSeriesPoint[];
+}
+
+export interface UserSummary {
+  id: number;
+  email: string;
+  name: string;
+  picture_url: string | null;
+  role: UserRole;
+  created_at: string;
+  order_count: number;
+  paid_order_count: number;
+  total_spent_cents: number;
+  last_order_at: string | null;
+}
+
 export interface ApiErrorBody {
   error: { code: string; message: string; details?: Record<string, unknown> };
   request_id: string | null;

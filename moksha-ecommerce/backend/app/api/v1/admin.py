@@ -16,10 +16,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.deps import AdminUser, DbSession, require_admin
+from app.models import UserRole
 from app.schemas.common import Page
 from app.schemas.order import AdminOrderResponse, OrderStatusUpdate
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
-from app.schemas.stats import DashboardStats
+from app.schemas.stats import DashboardStats, TimeSeries, UserSummary
 from app.services import order_service, product_service, stats_service
 from app.services.product_service import ProductFilters
 
@@ -190,3 +191,47 @@ async def update_order_status(
 )
 async def dashboard_stats(session: DbSession) -> DashboardStats:
     return await stats_service.dashboard_stats(session)
+
+
+@router.get(
+    "/stats/timeseries",
+    response_model=TimeSeries,
+    summary="Daily activity for the dashboard chart",
+    description=(
+        "**Admin only.** Four series over the last `days` days, bucketed by UTC day.\n\n"
+        "**Every day in the window is returned, including empty ones.** A sparse series is how "
+        "charts lie: omit the quiet days and the line joins the two either side of the gap, "
+        "showing a smooth trend across a period when nothing happened.\n\n"
+        "Two of the series are *flows* (revenue, orders — what happened that day) and two are "
+        "*stocks* (customers, products — how many existed by the end of it). They share a "
+        "response but not an axis: the dashboard plots one at a time."
+    ),
+)
+async def stats_timeseries(
+    session: DbSession,
+    days: Annotated[int, Query(ge=1, le=stats_service.MAX_TIMESERIES_DAYS)] = 30,
+) -> TimeSeries:
+    return await stats_service.timeseries(session, days=days)
+
+
+@router.get(
+    "/users",
+    response_model=Page[UserSummary],
+    summary="Everyone with an account, and what they have bought",
+    description=(
+        "**Admin only.** Biggest spender first. `total_spent_cents` counts paid and fulfilled "
+        "orders only — the same definition the revenue tile uses, so the two can never "
+        "disagree about what a sale is.\n\n"
+        "Computed as one grouped `LEFT JOIN`, not a query per user: the obvious implementation "
+        "of this screen is N+1, and at a hundred customers that is a hundred round trips to "
+        "render one table."
+    ),
+)
+async def admin_list_users(
+    session: DbSession,
+    role: Annotated[UserRole | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> Page[UserSummary]:
+    users, total = await stats_service.list_users(session, role=role, limit=limit, offset=offset)
+    return Page(items=users, total=total, limit=limit, offset=offset)

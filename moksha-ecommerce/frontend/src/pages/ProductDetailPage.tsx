@@ -1,5 +1,5 @@
 import { ArrowLeft, Check, Minus, PackageSearch, Plus, ShoppingBag } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { Container } from "@/components/layout/Container";
@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useProduct } from "@/hooks/useProducts";
 import { cn } from "@/lib/cn";
+import { flyToCart } from "@/lib/flyToCart";
 import { formatMoney } from "@/lib/format";
 import { MAX_PER_LINE, useCart } from "@/store/cart";
 
@@ -18,6 +19,7 @@ export function ProductDetailPage() {
   const add = useCart((state) => state.add);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const image = useRef<HTMLImageElement>(null);
 
   if (isPending) {
     return (
@@ -60,6 +62,7 @@ export function ProductDetailPage() {
     if (!product) return;
     add(product, quantity);
     setAdded(true);
+    flyToCart(image.current, product.image_url);
     window.setTimeout(() => setAdded(false), 1800);
   }
 
@@ -77,6 +80,7 @@ export function ProductDetailPage() {
         <div className="overflow-hidden rounded-lg border border-line bg-surface-sunken">
           {product.image_url ? (
             <img
+              ref={image}
               src={product.image_url}
               alt={product.name}
               width={720}
@@ -118,8 +122,10 @@ export function ProductDetailPage() {
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
+            {/* h-11 to match the lg button beside it. Two adjacent controls
+                at different heights is the sort of thing you cannot un-see. */}
             <div
-              className="flex h-9 items-center rounded-md border border-line-strong"
+              className="flex h-11 items-center rounded-md border border-line-strong"
               role="group"
               aria-label="Quantity"
             >
@@ -131,7 +137,7 @@ export function ProductDetailPage() {
                 <Minus className="size-3.5" aria-hidden />
               </StepperButton>
               <span
-                className="w-9 text-center text-sm tabular-nums text-ink"
+                className="w-8 text-center text-sm tabular-nums text-ink"
                 aria-live="polite"
                 aria-atomic
               >
@@ -189,7 +195,7 @@ function StepperButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex h-full w-8 items-center justify-center text-ink-muted",
+        "flex h-full w-10 items-center justify-center text-ink-muted",
         "transition-colors duration-[--dur-fast] hover:text-ink",
         "disabled:pointer-events-none disabled:opacity-35",
       )}

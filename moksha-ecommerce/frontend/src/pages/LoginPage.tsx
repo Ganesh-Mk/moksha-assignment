@@ -1,4 +1,4 @@
-import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
@@ -20,7 +20,9 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [exchanging, setExchanging] = useState(false);
 
-  const destination = (location.state as LocationState | null)?.from?.pathname ?? "/products";
+  const cameFrom = (location.state as LocationState | null)?.from?.pathname;
+  const cameFromGuardedRoute = Boolean(cameFrom);
+  const destination = cameFrom ?? "/products";
 
   const { buttonRef, status, error: googleError } = useGoogleSignIn({
     onCredential: async (idToken) => {
@@ -108,24 +110,16 @@ export function LoginPage() {
         </div>
 
         <DemoSignInCard
-          onSignIn={async (password, role) => {
+          onSignIn={async (password) => {
             setError(null);
-            const signedIn = await signInWithDemoPassword(password, role);
-            // Admins land on the admin console. Sending them to the shop first
-            // would hide the half of the app they signed in to look at.
-            navigate(signedIn.role === "admin" ? "/admin/orders" : destination, {
-              replace: true,
-            });
+            await signInWithDemoPassword(password);
+            // Somebody sent here by a guarded route wanted that route; anyone
+            // else came to look around, and the admin console is the half of
+            // the app they could not otherwise reach.
+            navigate(cameFromGuardedRoute ? destination : "/admin", { replace: true });
           }}
         />
 
-        <div className="mt-5 flex items-start gap-2 text-xs text-ink-subtle">
-          <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden />
-          <p className="leading-snug">
-            Your Google ID token is verified against Google's public keys on our server before any
-            session is created. We store your name, email and avatar — nothing else.
-          </p>
-        </div>
       </div>
     </Container>
   );

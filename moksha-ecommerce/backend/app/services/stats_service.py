@@ -6,11 +6,22 @@ works; doing it in SQL means the shape does not have to change when the volume d
 
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from datetime import UTC, date, datetime, time, timedelta
+from typing import NamedTuple
+
+from sqlalchemy import ColumnElement, case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app.models import Order, OrderStatus, Product, User, UserRole
-from app.schemas.stats import DashboardStats, LowStockProduct, StatusCount
+from app.schemas.stats import (
+    DashboardStats,
+    LowStockProduct,
+    StatusCount,
+    TimeSeries,
+    TimeSeriesPoint,
+    UserSummary,
+)
 
 # Below this, an admin should be reordering. Deliberately a constant rather than a setting: it is
 # a merchandising judgement, and a knob nobody turns is just another thing to document.
@@ -63,3 +74,170 @@ async def dashboard_stats(session: AsyncSession) -> DashboardStats:
             LowStockProduct(id=p.id, name=p.name, slug=p.slug, stock=p.stock) for p in low_stock
         ],
     )
+
+
+# A window longer than this is a reporting job, not a dashboard widget — it would also start
+# returning enough points that the chart draws more line segments than the screen has pixels.
+MAX_TIMESERIES_DAYS = 365
+
+
+async def timeseries(session: AsyncSession, *, days: int) -> TimeSeries:
+    """Daily activity over the last `days` days, ending today.
+
+    **Every day in the window is returned, including days with no activity.** A sparse series is
+    the classic way to draw a lie: the chart joins the two days either side of a gap and shows a
+    smooth trend across a period when nothing happened.
+
+    Bucketing is by UTC day, which is what `created_at` is stored in. For a single-region shop the
+    honest fix is to bucket in the shop's timezone; doing that properly means knowing what that
+    timezone is, and inventing one here would be worse than being explicit about UTC.
+    """
+    today = datetime.now(UTC).date()
+    start = today - timedelta(days=days - 1)
+    # Compared against a timezone-aware bound rather than casting the column to a date, so the
+    # index on created_at stays usable.
+    window_start = datetime.combine(start, time.min, tzinfo=UTC)
+
+    day = func.date(func.timezone("UTC", Order.created_at))
+    rows = (
+        await session.execute(
+            select(
+                day.label("day"),
+                func.count().label("orders"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (Order.status.in_(REVENUE_STATUSES), Order.total_cents),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("revenue"),
+            )
+            .where(Order.created_at >= window_start)
+            .group_by(day)
+        )
+    ).all()
+    by_day = {r.day: (int(r.orders), int(r.revenue)) for r in rows}
+
+    customers = await _running_total(
+        session, User.created_at, window_start, extra=(User.role == UserRole.CUSTOMER,)
+    )
+    products = await _running_total(
+        session, Product.created_at, window_start, extra=(Product.is_active.is_(True),)
+    )
+
+    points: list[TimeSeriesPoint] = []
+    customers_so_far = customers.opening
+    products_so_far = products.opening
+    for offset in range(days):
+        current = start + timedelta(days=offset)
+        customers_so_far += customers.added.get(current, 0)
+        products_so_far += products.added.get(current, 0)
+        orders, revenue = by_day.get(current, (0, 0))
+        points.append(
+            TimeSeriesPoint(
+                date=current,
+                revenue_cents=revenue,
+                orders=orders,
+                customers=customers_so_far,
+                products=products_so_far,
+            )
+        )
+
+    return TimeSeries(start=start, end=today, points=points)
+
+
+class _Cumulative(NamedTuple):
+    """How many existed before the window, and how many appeared on each day inside it."""
+
+    opening: int
+    added: dict[date, int]
+
+
+async def _running_total(
+    session: AsyncSession,
+    column: InstrumentedAttribute[datetime],
+    window_start: datetime,
+    *,
+    extra: tuple[ColumnElement[bool], ...],
+) -> _Cumulative:
+    """The two queries a running total needs: the opening balance, then the daily additions.
+
+    Two queries rather than one window function because the opening balance is a single scalar
+    over the whole table's history — expressing it as a window over the windowed rows would mean
+    scanning every row ever created just to reach a number the count already knows.
+    """
+    entity = column.parent.entity
+    opening = await session.scalar(
+        select(func.count()).select_from(entity).where(column < window_start, *extra)
+    )
+
+    day = func.date(func.timezone("UTC", column))
+    rows = (
+        await session.execute(
+            select(day.label("day"), func.count().label("added"))
+            .select_from(entity)
+            .where(column >= window_start, *extra)
+            .group_by(day)
+        )
+    ).all()
+
+    return _Cumulative(opening=int(opening or 0), added={r.day: int(r.added) for r in rows})
+
+
+async def list_users(
+    session: AsyncSession, *, role: UserRole | None = None, limit: int, offset: int
+) -> tuple[list[UserSummary], int]:
+    """Every user with their purchase history folded in, biggest spender first.
+
+    One grouped LEFT JOIN rather than a query per user: the obvious implementation of this screen
+    is N+1, and at a hundred customers that is a hundred round trips to render one table.
+
+    `total_spent_cents` counts paid and fulfilled orders only — the same definition
+    `dashboard_stats` uses for revenue. Two figures on one screen that disagree about what a sale
+    is are worse than one figure.
+    """
+    conditions = [User.role == role] if role is not None else []
+
+    total = await session.scalar(select(func.count()).select_from(User).where(*conditions))
+
+    paid = Order.status.in_(REVENUE_STATUSES)
+    rows = (
+        await session.execute(
+            select(
+                User,
+                func.count(Order.id).label("order_count"),
+                func.count(case((paid, Order.id))).label("paid_order_count"),
+                func.coalesce(func.sum(case((paid, Order.total_cents), else_=0)), 0).label(
+                    "total_spent_cents"
+                ),
+                func.max(Order.created_at).label("last_order_at"),
+            )
+            .select_from(User)
+            .outerjoin(Order, Order.user_id == User.id)
+            .where(*conditions)
+            .group_by(User.id)
+            # Best customers first, and a stable tiebreak so pagination cannot repeat or skip a
+            # row when several users have spent nothing.
+            .order_by(desc("total_spent_cents"), desc(User.created_at), User.id)
+            .limit(limit)
+            .offset(offset)
+        )
+    ).all()
+
+    return [
+        UserSummary(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            picture_url=user.picture_url,
+            role=user.role,
+            created_at=user.created_at,
+            order_count=int(order_count),
+            paid_order_count=int(paid_order_count),
+            total_spent_cents=int(total_spent_cents),
+            last_order_at=last_order_at,
+        )
+        for user, order_count, paid_order_count, total_spent_cents, last_order_at in rows
+    ], int(total or 0)

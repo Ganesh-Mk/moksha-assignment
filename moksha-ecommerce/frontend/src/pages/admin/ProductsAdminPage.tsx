@@ -325,11 +325,20 @@ function ProductDialog({ product, trigger }: { product?: Product; trigger: React
             required
           />
 
+          {/* Deliberately `text`, not `url`. The catalogue's own artwork is served
+              from the frontend as root-relative paths (`/products/x.svg`), and
+              `type="url"` rejects every one of them — the browser demands a
+              scheme and a host, which is exactly what a same-origin asset does
+              not have. The pattern below accepts both shapes and nothing else. */}
           <Input
             label="Image URL"
-            type="url"
+            type="text"
+            inputMode="url"
             value={form.image_url}
             onChange={(event) => set("image_url", event.target.value)}
+            pattern="^(https?://.+|/.*)$"
+            title="An absolute https:// URL, or a root-relative path such as /products/name.svg"
+            hint="A full https:// URL, or a path like /products/name.svg for bundled artwork."
           />
 
           {error ? (

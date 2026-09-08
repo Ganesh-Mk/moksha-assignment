@@ -1,11 +1,12 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { LayoutDashboard, LogOut, Menu, Package, ShoppingBag, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/authContext";
 import { cn } from "@/lib/cn";
+import { registerCartTarget } from "@/lib/flyToCart";
 import { selectItemCount, useCart } from "@/store/cart";
 
 /**
@@ -23,6 +24,16 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
   const { user, isAdmin, signOut } = useAuth();
   const itemCount = useCart(selectItemCount);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const cartButton = useRef<HTMLButtonElement>(null);
+
+  // The add-to-cart animation needs somewhere to fly *to*, and only the header
+  // knows where that is. Registered rather than passed down, because otherwise
+  // every component that can add to the cart would need a ref threaded through
+  // it from here.
+  useEffect(() => {
+    registerCartTarget(cartButton.current);
+    return () => registerCartTarget(null);
+  }, []);
 
   const links = [
     { to: "/products", label: "Shop" },
@@ -72,6 +83,7 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
 
         <div className="ml-auto flex items-center gap-1.5">
           <button
+            ref={cartButton}
             type="button"
             onClick={onOpenCart}
             className={cn(
@@ -171,7 +183,9 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
           ) : (
-            <Button asChild size="sm" className="hidden sm:inline-flex">
+            // Default size, i.e. h-9 — the same height as the cart button it
+            // sits beside. A shorter one reads as a mistake, because it is.
+            <Button asChild className="hidden sm:inline-flex">
               <Link to="/login">Sign in</Link>
             </Button>
           )}

@@ -27,10 +27,16 @@ export interface InputProps
   adornment?: ReactNode;
   /** Hide the label visually but keep it for assistive technology. */
   hideLabel?: boolean;
+  /**
+   * Rendered inside the field on the right — a reveal toggle, a unit, a clear
+   * button. Unlike `adornment` this is *not* pointer-transparent, because the
+   * things that belong on this side are usually interactive.
+   */
+  trailing?: ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, hint, error, adornment, hideLabel, className, id, ...props },
+  { label, hint, error, adornment, trailing, hideLabel, className, id, ...props },
   ref,
 ) {
   const generated = useId();
@@ -66,11 +72,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
             "focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-ring)]",
             "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-subtle",
             adornment && "pl-7",
+            trailing && "pr-10",
             error ? "border-danger" : "border-line-strong",
             className,
           )}
           {...props}
         />
+        {trailing ? <span className="absolute right-1">{trailing}</span> : null}
       </div>
 
       {message ? (

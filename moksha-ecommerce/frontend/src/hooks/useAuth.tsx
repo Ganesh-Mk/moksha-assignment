@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import { AuthContext, type AuthState } from "@/hooks/authContext";
 import { ApiError, request, tokenStore } from "@/lib/api";
-import type { TokenResponse, User, UserRole } from "@/types/api";
+import type { TokenResponse, User } from "@/types/api";
 
 /**
  * Session state provider.
@@ -81,10 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithDemoPassword = useCallback(
-    (password: string, role: UserRole): Promise<User> =>
+    // No role in the body: the endpoint defaults to admin, and the admin
+    // account can already do everything a customer can.
+    (password: string): Promise<User> =>
       request<TokenResponse>("/auth/demo", {
         method: "POST",
-        body: { password, role },
+        body: { password },
         anonymous: true,
       }).then(adopt),
     [adopt],

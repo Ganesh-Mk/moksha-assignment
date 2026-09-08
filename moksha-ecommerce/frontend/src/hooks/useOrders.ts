@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { query, request } from "@/lib/api";
-import type { AdminOrder, DashboardStats, Order, OrderStatus, Page } from "@/types/api";
+import type {
+  AdminOrder,
+  DashboardStats,
+  Order,
+  OrderStatus,
+  Page,
+  TimeSeries,
+  UserSummary,
+} from "@/types/api";
 
 export const orderKeys = {
   all: ["orders"] as const,
@@ -104,5 +112,26 @@ export function useDashboardStats() {
     queryKey: orderKeys.stats(),
     queryFn: () => request<DashboardStats>("/admin/stats"),
     staleTime: 15_000,
+  });
+}
+
+export function useActivitySeries(days: number) {
+  return useQuery({
+    queryKey: [...orderKeys.stats(), "series", days],
+    queryFn: () => request<TimeSeries>(`/admin/stats/timeseries?days=${days}`),
+    // Day-granularity data. Refetching it every fifteen seconds would be one
+    // request per operator per fifteen seconds to learn nothing new.
+    staleTime: 60_000,
+    // Keeps the previous series on screen while a new range loads, so changing
+    // the filter animates from one line to the next instead of blanking.
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useAdminUsers() {
+  return useQuery({
+    queryKey: [...orderKeys.stats(), "users"],
+    queryFn: () => request<Page<UserSummary>>("/admin/users?limit=50"),
+    staleTime: 30_000,
   });
 }

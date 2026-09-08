@@ -287,6 +287,16 @@
   }
 }
 
+/* The chart's line draws itself from left to right. `stroke-dasharray` is set
+   on the element to a length comfortably longer than any path it will hold —
+   measuring the real length needs a layout pass and a ref, for an effect that
+   is over in under a second. */
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @keyframes shimmer {
   to {
     background-position-x: -200%;

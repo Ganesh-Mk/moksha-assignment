@@ -1,8 +1,9 @@
 import { Check, Plus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { cn } from "@/lib/cn";
+import { flyToCart } from "@/lib/flyToCart";
 import { formatMoney } from "@/lib/format";
 import { useCart } from "@/store/cart";
 import type { Product } from "@/types/api";
@@ -26,13 +27,16 @@ import type { Product } from "@/types/api";
 export function ProductCard({ product }: { product: Product }) {
   const add = useCart((state) => state.add);
   const [justAdded, setJustAdded] = useState(false);
+  const image = useRef<HTMLImageElement>(null);
   const soldOut = product.stock <= 0;
 
   function handleAdd() {
     add(product);
     setJustAdded(true);
-    // A brief confirmation on the button itself. The cart badge also animates,
-    // but that is in the corner of the screen and easy to miss.
+    // Three confirmations, because a number changing in the far corner of the
+    // screen is easy to miss entirely: the button acknowledges, a ghost of the
+    // image flies to the cart, and the cart bumps when it lands.
+    flyToCart(image.current, product.image_url);
     window.setTimeout(() => setJustAdded(false), 1400);
   }
 
@@ -48,6 +52,7 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="relative aspect-[4/5] overflow-hidden bg-surface-sunken">
         {product.image_url ? (
           <img
+            ref={image}
             src={product.image_url}
             alt={product.name}
             width={400}
