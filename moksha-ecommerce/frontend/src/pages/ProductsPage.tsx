@@ -91,8 +91,13 @@ export function ProductsPage() {
       <header className="mb-6">
         <p className="label-caps">The range</p>
         <h1 className="mt-1 font-display text-3xl text-ink">Haircare, honestly made</h1>
+        {/* No hard-coded count: it comes from the same query the grid renders,
+            so the sentence cannot drift from the catalogue the way a literal
+            "twelve" did the moment the range grew. Suppressed while filtered —
+            this describes the range, not the current result set. */}
         <p className="mt-1.5 max-w-md text-sm text-ink-muted">
-          Twelve products, each doing one job properly. Free delivery over ₹1,500.
+          {data && !hasFilters ? `${data.total} products, each` : "Every product"} doing one job
+          properly. Free delivery over ₹1,500.
         </p>
       </header>
 

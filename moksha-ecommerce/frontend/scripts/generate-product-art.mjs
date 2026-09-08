@@ -130,9 +130,10 @@ function wrap(fill, accent) {
 
 const SHAPES = { bottle, jar, dropper, spray, tube, comb, wrap };
 
+// The five Hydra Curls products are deliberately absent: they use the real photography from the
+// Assignment 1 landing page (`public/products/hydra-curls-*.webp`), so generating placeholder art
+// for them would write files nothing references. Everything below is a product with no photograph.
 const PRODUCTS = [
-  { slug: "hydra-curls-shampoo", shape: "bottle", category: "cleanse", fill: "#4E7F6B", accent: "#2F5B4A" },
-  { slug: "hydra-curls-conditioner", shape: "bottle", category: "condition", fill: "#C9B79C", accent: "#A08D72" },
   { slug: "deep-repair-hair-mask", shape: "jar", category: "treatment", fill: "#8C6F52", accent: "#6B5540" },
   { slug: "curl-defining-gel", shape: "tube", category: "style", fill: "#5F7E93", accent: "#43606F" },
   { slug: "lightweight-leave-in", shape: "tube", category: "style", fill: "#D9CFC0", accent: "#B0A18C" },
