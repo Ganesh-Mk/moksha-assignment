@@ -5,8 +5,8 @@ Two independent deliverables in one repository.
 
 | | Assignment | Stack | Live |
 |---|---|---|---|
-| **1** | [Figma → Responsive React Page](./hydra-curls) | React 19 · TypeScript · Vite · Tailwind v4 · shadcn/ui | _TBD_ |
-| **2** | [Mini AI E-Commerce Application](./moksha-ecommerce) | React · TS · Tailwind · shadcn · FastAPI · PostgreSQL · LangGraph · Stripe | _TBD_ |
+| **1** | [Figma → Responsive React Page](./hydra-curls) | React 19 · TypeScript · Vite · Tailwind v4 · shadcn/ui | **[Live](https://moksha-hydra-curls.vercel.app/)** |
+| **2** | [Mini AI E-Commerce Application](./moksha-ecommerce) | React · TS · Tailwind · shadcn · FastAPI · PostgreSQL · LangGraph · Stripe | **[Live](https://moksha-ecommerce.vercel.app/)** · [API docs](https://moksha-api-mv1j.onrender.com/docs) |
 
 ---
 
@@ -87,8 +87,10 @@ cd moksha-ecommerce && docker compose up
 
 ## AI tools used
 
-_To be completed on submission — see each assignment's README for detail._
+Claude Code, used throughout for the Figma extraction, implementation and tests. The
+architectural decisions were mine: PostgreSQL over MongoDB, the service-layer boundary the AI
+agent shares with the REST API, webhook idempotency, and the agent's identity model.
 
 ## Total development time
 
-_To be completed on submission._
+Roughly 12 hours in total, working on both assignments in parallel.
