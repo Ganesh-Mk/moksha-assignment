@@ -38,6 +38,7 @@ erDiagram
         varchar  image_url
         varchar  category
         int      stock
+        int      display_order "merchandising order"
         bool     is_active "soft delete"
         tstz     created_at
         tstz     updated_at
@@ -140,6 +141,7 @@ Index: `ix_users_role_created_at (role, created_at)` — covers the admin user l
 | `image_url` | `varchar(1024)` nullable | |
 | `category` | `varchar(64)` **indexed** | lower-cased on write |
 | `stock` | `integer` | **CHECK ≥ 0** |
+| `display_order` | `integer` | default `100`; lower sorts first |
 | `is_active` | `boolean` **indexed** | soft delete |
 
 **`price_cents` is an integer, and this is the single most important column decision in the
@@ -151,11 +153,19 @@ frontend's `formatMoney`.
 **The slug is immutable.** It is the product's public URL. Silently changing it would 404 every
 existing link, bookmark and shared page.
 
+**`display_order` exists because insert order is not a decision anybody made.** The catalogue was
+sorted by `created_at DESC`, so whichever products were seeded last appeared first and the shop
+reshuffled itself whenever a row was re-inserted. Which products lead the range is a merchandising
+call, so it is a column an admin can change rather than a constant in a service. The seed numbers
+them in steps of ten, leaving room to slot a product between two without renumbering the rest.
+
 **`category` is normalised to lower case on write** so filtering is an exact indexed match. A
 case-insensitive comparison would not use the index.
 
 Indexes:
 - `ix_products_slug` — every product page is a slug lookup
+- `ix_products_display_order (display_order, created_at)` — covers the default sort, so the
+  listing needs no separate sort step
 - `ix_products_active_category (is_active, category)` — covers the default catalogue query, which
   is always `WHERE is_active AND category = ?`. Without it that is a sequential scan that degrades
   as the catalogue grows.

@@ -55,6 +55,8 @@ unclassified.
 | GET | `/admin/stats` | **Admin** |
 | GET | `/admin/stats/timeseries` | **Admin** |
 | GET | `/admin/users` | **Admin** |
+| PATCH | `/admin/users/{id}` | **Admin** |
+| DELETE | `/admin/users/{id}` | **Admin** |
 
 ---
 
@@ -207,6 +209,10 @@ stated trade-off, not an oversight. The short access lifetime bounds the exposur
 **Active products only, unconditionally.** `include_inactive` is a service argument passed by the
 admin router — it is not a query parameter. A soft delete a client can undo with
 `?include_inactive=true` is not a soft delete.
+
+Ordered by `display_order`, then newest, then id. The id tiebreak is not decoration: without a
+total order two rows with equal keys can swap between pages, and the same product appears twice or
+not at all.
 
 ### `GET /products/categories` · Public
 
@@ -491,6 +497,27 @@ sale is are worse than one figure.
 Computed as one grouped `LEFT JOIN`, not a query per user. The obvious implementation of this
 screen is N+1, and at a hundred customers that is a hundred round trips to render one table. The
 join is `LEFT` so a customer who has bought nothing still appears.
+
+### `DELETE /admin/users/{id}` · Admin
+Disables the account: sets `is_active = false` and returns the updated row.
+
+**A soft delete, for the same reason a withdrawn product is one.** A hard `DELETE` would either
+orphan the customer's orders or cascade them away, and an order has to survive as a financial
+record whatever happens to the account — the `orders.user_id` foreign key is what makes *who bought
+this* answerable a year later. Disabling is what "delete" means here.
+
+A disabled user cannot sign in and cannot renew an existing session, so a token issued before the
+change stops working at its next refresh rather than lasting until it expires.
+
+| Response | When |
+|---|---|
+| **200** | Disabled |
+| **404** | No such user |
+| **409** | You are disabling yourself, or the account is the **last active admin** — either would leave nobody able to undo it |
+
+### `PATCH /admin/users/{id}` · Admin
+`{ "is_active": true }` — the undo. Reversibility from the same screen is the difference between a
+soft delete and a mistake.
 
 ---
 
