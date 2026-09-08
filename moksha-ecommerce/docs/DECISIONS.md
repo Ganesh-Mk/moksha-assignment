@@ -302,10 +302,16 @@ looks like something else. What it actually saves is a Catmull-Rom smoother (12 
 
 Two details worth defending, because they are where a chart stops being true:
 
-- **Catmull-Rom, not a quadratic smooth.** Catmull-Rom *interpolates* — every reading is on the
-  line. Quadratic smoothing passes near the points rather than through them, at which point the
-  curve is no longer the data. Tension is 0.5 rather than 1.0 because at 1.0 the curve overshoots
-  a spike and draws values that never happened, including negative revenue.
+- **Monotone cubic, not Catmull-Rom.** Both interpolate — every reading is on the line, unlike a
+  quadratic smooth, which passes *near* the points and so stops being the data. Catmull-Rom was
+  the first choice and was wrong: it does not preserve monotonicity, so on a step (twenty-nine
+  days of no customers, then two) it dipped below the axis on the approach and overshot the peak.
+  Fritsch–Carlson limits the tangent at every point so each segment is bounded by the two readings
+  it connects, which makes overshoot impossible rather than merely unlikely. Writing it turned up
+  a case the textbook limiter misses on its own — at a local peak the averaged tangent can stay
+  inside the radius-3 circle and still carry the curve past the extremum — so turning points take
+  a flat tangent. `lib/monotoneCubic.ts`, with tests that sample the curve densely and assert it
+  never leaves the range of its input.
 - **Flows are anchored at zero, stocks are not.** Revenue and orders start the axis at 0, or a
   small wobble is drawn as a cliff. A running total of customers does not, or 1,000 → 1,010 is a
   flat line. This is also why the four series share a filter rather than an axis.
