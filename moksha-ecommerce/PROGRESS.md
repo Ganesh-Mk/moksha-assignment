@@ -106,8 +106,9 @@ Off unless `DEMO_LOGIN_PASSWORD` is set (404, not 503 — see D-016 for why), co
 
 ## Open items
 
-1. **Set `DEMO_LOGIN_PASSWORD` on Render.** Until it is set the reviewer sign-in 404s and the login
-   page says so. Nothing else needs it — the frontend has no matching env var.
+1. **Set `DEMO_LOGIN_PASSWORD=moksha@123` on Render.** The code is deployed — `/health/db` already
+   reports the `demo_login` key — but the variable is missing, so it reads `disabled` and the login
+   page says the door is switched off. Nothing else needs it; the frontend has no matching env var.
 2. **Roll the Stripe secret key** — briefly exposed by `/payments/config` before the prefix guard.
    Test-mode, bounded risk, but it should not stay live.
 3. **Total time taken** — the one deliverable still blank, and only the user can fill it in.

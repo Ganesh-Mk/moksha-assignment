@@ -8,6 +8,7 @@ Assignment 2. An e-commerce application demonstrating the full chain
 | **Live app** | **https://moksha-ecommerce.vercel.app** |
 | **API docs** | **https://moksha-api-mv1j.onrender.com/docs** (Swagger) · [`/redoc`](https://moksha-api-mv1j.onrender.com/redoc) |
 | **Health** | [`/api/v1/health/db`](https://moksha-api-mv1j.onrender.com/api/v1/health/db) — reports which integrations are configured |
+| **Reviewer sign-in** | password **`moksha@123`** — on the login page, pick *Admin* or *Customer*. No email needed. [Why this exists](#demo-accounts) |
 | **Stack** | React 19 · TypeScript · Tailwind v4 · FastAPI · PostgreSQL 16 · LangGraph · Stripe |
 
 > **Warm the API before trying the demo.** Render's free tier sleeps after ~15 minutes idle and
@@ -141,7 +142,7 @@ exactly the bug this project is about.
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | payments |
 | `ANTHROPIC_API_KEY` | the support agent |
 | `ADMIN_EMAILS` | comma-separated; these addresses get the admin role on Google sign-in |
-| `DEMO_LOGIN_PASSWORD` | *optional* — enables the reviewer sign-in below. Unset, that endpoint 404s |
+| `DEMO_LOGIN_PASSWORD` | *optional* — enables the reviewer sign-in below (`moksha@123` on the live demo). Unset, that endpoint 404s |
 | `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID` | frontend (Vite only exposes `VITE_`-prefixed vars) |
 
 A feature whose credential is absent is **disabled and says so** — `/health/db` reports it, and
@@ -161,13 +162,20 @@ Google accounts get through it. Your address in `ADMIN_EMAILS` makes that accoun
 
 **2. Reviewer sign-in (a password, no email).** Because of the above, a reviewer with no
 allow-listed account cannot use door 1 and would see the catalogue and nothing else. So the login
-page also offers a password box — pick **Admin** or **Customer**, enter `DEMO_LOGIN_PASSWORD`, and
-you are signed into the matching seeded account.
+page also offers a password box — pick **Admin** or **Customer**, enter the password, and you are
+signed into the matching seeded account.
+
+> ### Password: `moksha@123`
 
 | Role | Seeded as | Password sign-in gives you |
 |---|---|---|
 | Customer | `demo.customer@moksha.test` | shop, checkout, order history, AI assistant |
 | Admin | `demo.admin@moksha.test` | order queue, status transitions, product editing, stats |
+
+Yes, that password is written down in a public repository, and yes it grants admin on the live
+demo to anyone who reads it. That is the intended trade for a reviewable demo, not an oversight —
+it is why the whole thing is gated behind an env var (`DEMO_LOGIN_PASSWORD`) that a real deployment
+simply leaves unset, at which point the endpoint does not exist.
 
 > **This is an authentication shortcut, not an authorization bypass**, and the difference is the
 > whole design. It issues the *same* JWT Google sign-in issues, for a real user row with a real
