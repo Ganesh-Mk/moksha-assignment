@@ -37,7 +37,7 @@ unclassified.
 | GET | `/products/categories` | Public |
 | GET | `/products/{slug}` | Public |
 | POST | `/orders` | Authenticated |
-| GET | `/orders` | Authenticated *(own only)* |
+| GET | `/orders` | Authenticated *(own only, unless admin)* |
 | GET | `/orders/{id}` | Authenticated *(owner only)* |
 | POST | `/orders/{id}/cancel` | Authenticated *(owner only)* |
 | GET | `/payments/config` | Public |
@@ -249,9 +249,15 @@ validated against the full stock independently and together could oversell it.
 
 ### `GET /orders` · Authenticated
 
-The caller's own orders only. The scope is a `WHERE` clause applied **before** pagination, not a
-filter over results — filtering afterwards produces mostly-empty pages and leaks a total that
-includes other people's orders.
+A customer's own orders, and nothing else. The scope is a `WHERE` clause applied **before**
+pagination, not a filter over results — filtering afterwards produces mostly-empty pages and leaks
+a total that includes other people's orders.
+
+> **An admin calling this sees every order**, because `order_service.list_orders` skips the
+> ownership clause for the admin role. That is intentional and it is not a privilege escalation —
+> an admin is already authorised to read every order through `/admin/orders`. It does mean the
+> customer-facing "My orders" page shows an admin the whole queue, which is worth knowing before
+> signing in with the demo password and wondering whose orders those are.
 
 ### `GET /orders/{id}` · Authenticated, owner only
 
