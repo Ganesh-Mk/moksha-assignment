@@ -109,7 +109,18 @@ export function ProductsPage() {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        {/* Scrolls sideways on mobile rather than wrapping.
+            Wrapping pushed the product grid down by a whole row on a phone, which is the most
+            valuable space on the page. The negative margin plus matching padding lets the row
+            bleed to the screen edge, so the last pill is visibly cut off — that is the cue that
+            there is more to the right. From `sm` up there is room to wrap normally. */}
+        <div
+          className={cn(
+            "no-scrollbar flex items-center gap-1.5",
+            "-mx-4 overflow-x-auto px-4",
+            "sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0",
+          )}
+        >
           <FilterChip active={!category} onClick={() => update("category", null)}>
             All
           </FilterChip>
@@ -122,7 +133,10 @@ export function ProductsPage() {
               {name}
             </FilterChip>
           ))}
-          <FilterChip active={inStockOnly} onClick={() => update("in_stock", inStockOnly ? null : "1")}>
+          <FilterChip
+            active={inStockOnly}
+            onClick={() => update("in_stock", inStockOnly ? null : "1")}
+          >
             In stock
           </FilterChip>
         </div>
@@ -229,7 +243,9 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-7 rounded-full border px-3 text-xs capitalize",
+        // h-9 matches the search input. Two heights side by side read as two unrelated
+        // controls; one height reads as a single filter strip.
+        "h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-xs capitalize",
         "transition-[background-color,border-color,color] duration-[--dur-fast]",
         active
           ? "border-accent bg-accent text-accent-ink"

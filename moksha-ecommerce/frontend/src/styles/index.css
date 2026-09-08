@@ -207,6 +207,19 @@
     color: var(--ink-subtle);
   }
 
+  /* A horizontal scroller whose scrollbar is hidden.
+     Used for the mobile filter row: the bar itself would be thicker than the gap between the
+     pills and the grid, so it reads as a rendering artefact rather than an affordance. The
+     content still scrolls by touch, wheel, and by tabbing to an off-screen pill. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Clamp to N lines. Product descriptions in a grid must not set the row
      height, or one long description drags every card in the row taller. */
   .line-clamp-2 {

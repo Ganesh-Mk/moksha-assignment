@@ -545,3 +545,116 @@ class TestOrderResponses:
         )
 
         assert "user" not in response.json()
+
+
+class TestOrderLinesCarryTheProductImage:
+    """The order pages show a thumbnail, so the line has to expose one.
+
+    Read live from the product rather than snapshotted alongside name and price — the line between
+    the two is *agreed* versus *shown*. Price and name are terms of the transaction; an image is
+    presentation, and the current picture of the same item is more useful than a stale one.
+    """
+
+    async def test_an_order_line_exposes_the_products_image(
+        self, client: AsyncClient, as_customer: dict[str, str], db: AsyncSession
+    ) -> None:
+        product = await make_product(db, slug="with-image", stock=5)
+        product.image_url = "/products/with-image.svg"
+        await db.commit()
+
+        response = await client.post(
+            f"{API}/orders",
+            headers=as_customer,
+            json={"items": [{"product_id": product.id, "quantity": 1}]},
+        )
+
+        assert response.status_code == 201
+        assert response.json()["items"][0]["product_image_url"] == "/products/with-image.svg"
+
+    async def test_the_image_follows_the_product_while_name_and_price_do_not(
+        self, client: AsyncClient, as_customer: dict[str, str], db: AsyncSession
+    ) -> None:
+        """The whole point of reading it live, in one test.
+
+        Re-shooting a product should update the picture on a past order. Renaming or repricing it
+        must not — that would misrepresent what the customer agreed to.
+        """
+        product = await make_product(db, slug="restyled", price_cents=10_000, stock=5)
+        product.image_url = "/products/old.svg"
+        await db.commit()
+        created = await client.post(
+            f"{API}/orders",
+            headers=as_customer,
+            json={"items": [{"product_id": product.id, "quantity": 1}]},
+        )
+        order_id = created.json()["id"]
+
+        product.image_url = "/products/new.svg"
+        product.name = "Renamed Product"
+        product.price_cents = 25_000
+        await db.commit()
+
+        item = (await client.get(f"{API}/orders/{order_id}", headers=as_customer)).json()["items"][
+            0
+        ]
+
+        assert item["product_image_url"] == "/products/new.svg", "image should follow the product"
+        assert item["product_name"] == "Restyled", "name is snapshotted and must not change"
+        assert item["unit_price_cents"] == 10_000, "price is snapshotted and must not change"
+
+    async def test_a_product_without_an_image_yields_null_rather_than_failing(
+        self, client: AsyncClient, as_customer: dict[str, str], db: AsyncSession
+    ) -> None:
+        product = await make_product(db, slug="no-image", stock=5)
+
+        response = await client.post(
+            f"{API}/orders",
+            headers=as_customer,
+            json={"items": [{"product_id": product.id, "quantity": 1}]},
+        )
+
+        assert response.json()["items"][0]["product_image_url"] is None
+
+    async def test_the_orders_list_carries_images_too(
+        self, client: AsyncClient, as_customer: dict[str, str], db: AsyncSession
+    ) -> None:
+        """The list renders thumbnails, so it must eager-load the product as well.
+
+        Without the chained selectinload this raises rather than lazy-loading — `lazy="raise"`
+        turns an N+1 into an immediate error instead of a silent performance bug.
+        """
+        product = await make_product(db, slug="listed", stock=5)
+        product.image_url = "/products/listed.svg"
+        await db.commit()
+        await client.post(
+            f"{API}/orders",
+            headers=as_customer,
+            json={"items": [{"product_id": product.id, "quantity": 1}]},
+        )
+
+        listing = await client.get(f"{API}/orders", headers=as_customer)
+
+        assert listing.status_code == 200
+        assert listing.json()["items"][0]["items"][0]["product_image_url"] == "/products/listed.svg"
+
+    async def test_an_admin_reading_any_order_also_gets_images(
+        self,
+        client: AsyncClient,
+        as_customer: dict[str, str],
+        as_admin: dict[str, str],
+        db: AsyncSession,
+    ) -> None:
+        product = await make_product(db, slug="admin-view", stock=5)
+        product.image_url = "/products/admin-view.svg"
+        await db.commit()
+        created = await client.post(
+            f"{API}/orders",
+            headers=as_customer,
+            json={"items": [{"product_id": product.id, "quantity": 1}]},
+        )
+
+        admin_view = await client.get(
+            f"{API}/admin/orders/{created.json()['id']}", headers=as_admin
+        )
+
+        assert admin_view.json()["items"][0]["product_image_url"] == "/products/admin-view.svg"

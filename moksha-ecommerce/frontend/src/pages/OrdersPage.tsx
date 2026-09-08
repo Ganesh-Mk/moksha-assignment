@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ProductThumbStack } from "@/components/product/ProductThumb";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMyOrders } from "@/hooks/useOrders";
 import { cn } from "@/lib/cn";
@@ -70,6 +71,8 @@ export function OrdersPage() {
                   to={`/orders/${order.id}`}
                   className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4"
                 >
+                  <ProductThumbStack images={order.items.map((item) => item.product_image_url)} />
+
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="tnum text-sm font-semibold text-ink">#{order.id}</span>

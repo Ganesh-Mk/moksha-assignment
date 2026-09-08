@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { Container } from "@/components/layout/Container";
 import { OrderTimeline } from "@/components/order/OrderTimeline";
+import { ProductThumb } from "@/components/product/ProductThumb";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -160,7 +161,9 @@ export function OrderDetailPage() {
           <CardHeader title="Items" />
           <ul className="divide-y divide-line">
             {order.items.map((item) => (
-              <li key={item.id} className="flex items-baseline gap-3 px-4 py-3">
+              <li key={item.id} className="flex items-center gap-3 px-4 py-3">
+                <ProductThumb src={item.product_image_url} />
+
                 <div className="min-w-0 flex-1">
                   {/* The snapshot, not the product's current name — this is
                       what the customer actually bought. */}

@@ -270,14 +270,19 @@ async def _load_order(session: AsyncSession, order_id: int) -> Order:
     """Load an order with its items and buyer eagerly.
 
     `selectinload` rather than lazy loading: relationships are declared `lazy="raise"`, so an
-    implicit load would be a runtime error. Being explicit here also keeps this to two queries
-    instead of one per line item.
+    implicit load would be a runtime error. Being explicit here also keeps this to a fixed number
+    of queries rather than one per line item.
+
+    The chained `.selectinload(OrderItem.product)` is what lets a line render the product's image
+    without an N+1: one extra query for all products across all items, not one per item.
     """
     order = (
         await session.execute(
             select(Order)
             .where(Order.id == order_id)
-            .options(selectinload(Order.items), selectinload(Order.user))
+            .options(
+                selectinload(Order.items).selectinload(OrderItem.product), selectinload(Order.user)
+            )
         )
     ).scalar_one_or_none()
 
@@ -349,7 +354,9 @@ async def list_orders(
     total = await session.scalar(count_stmt)
 
     stmt = (
-        stmt.options(selectinload(Order.items), selectinload(Order.user))
+        stmt.options(
+            selectinload(Order.items).selectinload(OrderItem.product), selectinload(Order.user)
+        )
         .order_by(Order.created_at.desc(), Order.id.desc())
         .limit(limit)
         .offset(offset)
@@ -382,7 +389,9 @@ async def get_order_by_stripe_session(session: AsyncSession, session_id: str) ->
         await session.execute(
             select(Order)
             .where(Order.stripe_session_id == session_id)
-            .options(selectinload(Order.items), selectinload(Order.user))
+            .options(
+                selectinload(Order.items).selectinload(OrderItem.product), selectinload(Order.user)
+            )
         )
     ).scalar_one_or_none()
     return order

@@ -159,6 +159,24 @@ class OrderItem(Base, TimestampMixin):
     def line_total_cents(self) -> int:
         return self.quantity * self.unit_price_cents
 
+    @property
+    def product_image_url(self) -> str | None:
+        """The product's *current* image — deliberately not snapshotted like name and price.
+
+        The line drawn here is between what was **agreed** and what is merely **shown**. Price and
+        name are terms of the transaction: if either changed, a past order would misrepresent what
+        the customer actually bought, so both are copied at purchase time (DECISIONS D-006).
+
+        An image is presentation. Re-shooting a product does not change what was sold, and showing
+        the current picture of the same item is more correct than showing a stale one. Reading it
+        live also means the order page cannot drift from the catalogue.
+
+        Safe to read because the FK is `ON DELETE RESTRICT`: a product that has ever been ordered
+        cannot be deleted, only deactivated, so `self.product` is always there. It will raise
+        rather than lazy-load if a caller forgot to eager-load it — which is the point.
+        """
+        return self.product.image_url
+
     def __repr__(self) -> str:
         return (
             f"<OrderItem order_id={self.order_id} product_id={self.product_id} qty={self.quantity}>"

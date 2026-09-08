@@ -33,6 +33,9 @@ class OrderItemResponse(BaseModel):
     product_id: int
     # The snapshot, not the product's current name — this is what the customer bought.
     product_name: str
+    # The product's *current* image, read live rather than snapshotted. Name and price are terms
+    # of the transaction; a picture is presentation. See `OrderItem.product_image_url`.
+    product_image_url: str | None
     quantity: int
     unit_price_cents: int
 

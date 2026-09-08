@@ -56,6 +56,13 @@ export interface OrderItem {
   product_id: number;
   /** Snapshotted at purchase time — not the product's current name. */
   product_name: string;
+  /**
+   * The product's *current* image, read live rather than snapshotted.
+   *
+   * Name and price are terms of the transaction and are frozen; a picture is presentation, so
+   * showing the current one is more useful than a stale one.
+   */
+  product_image_url: string | null;
   quantity: number;
   unit_price_cents: number;
   line_total_cents: number;
