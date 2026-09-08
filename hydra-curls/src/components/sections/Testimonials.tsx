@@ -11,6 +11,7 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel'
 import { CurvedText } from '@/components/primitives/CurvedText'
+import { SoftWave } from '@/components/primitives/SoftWave'
 import { decorativeArcText, testimonials } from '@/content/sections'
 import { cn } from '@/lib/utils'
 
@@ -59,10 +60,31 @@ export function Testimonials() {
         {decorativeArcText}
       </CurvedText>
 
+      {/* The faint loops drifting through the band. In the reference these are large, very
+          low-contrast rings — closer to a watermark than a pattern — and without them the cyan
+          reads as a flat slab of colour. Thin strokes rather than filled shapes, so they cost
+          nothing and cannot compete with the quotes on top of them. */}
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice"
+        className="pointer-events-none absolute inset-0 h-full w-full text-white/25"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <circle cx="1180" cy="180" r="120" />
+        <circle cx="1320" cy="330" r="180" />
+        <circle cx="1010" cy="560" r="150" />
+        <circle cx="1290" cy="700" r="110" />
+        <circle cx="1130" cy="820" r="90" />
+      </svg>
+
       {/* The photograph runs flush to the viewport edge (Figma places it at x0, 1091 wide),
           so the grid sits on the section rather than inside the content container and only the
           copy column carries the gutter. */}
-      <div className="grid items-center gap-12 lg:grid-cols-[56.8%_1fr] lg:gap-0">
+      <div className="relative grid items-center gap-12 lg:grid-cols-[56.8%_1fr] lg:gap-0">
         <div className="relative">
           {/* The source is a 1024x1536 portrait; Figma's node is 1091x993, so the design crops
               it hard to landscape and anchors the face at the top. Rendering it at its natural
@@ -162,6 +184,14 @@ export function Testimonials() {
           </Carousel>
         </div>
       </div>
+
+      {/* The band hands over to the experts grid on one long sweep, high at the left where the
+          photograph's own diagonal cut ends. */}
+      <SoftWave
+        fillClassName="fill-page"
+        shape="swoop"
+        className="absolute inset-x-0 bottom-0 h-[clamp(2.5rem,6vw,7rem)]"
+      />
     </section>
   )
 }

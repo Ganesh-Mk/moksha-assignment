@@ -316,6 +316,12 @@ export interface Resource {
   readonly imageSide: 'left' | 'right'
   /** Each row's panel takes a different brand colour: periwinkle, purple, then teal. */
   readonly panelClassName: string
+  /**
+   * The same colour as `panelClassName`, as a `fill-*` utility. The rippled seam beside the
+   * panel is an SVG path, and SVG paints with `fill`, not `background-color` — so the pair has
+   * to travel together rather than being derived from one string at the call site.
+   */
+  readonly edgeFillClassName: string
 }
 
 const RESOURCE = {
@@ -338,13 +344,21 @@ export const learn = {
       image: 'learn-1',
       imageSide: 'left',
       panelClassName: 'bg-brand-navy-soft',
+      edgeFillClassName: 'fill-brand-navy-soft',
     },
-    { ...RESOURCE, image: 'learn-2', imageSide: 'right', panelClassName: 'bg-brand-purple' },
+    {
+      ...RESOURCE,
+      image: 'learn-2',
+      imageSide: 'right',
+      panelClassName: 'bg-brand-purple',
+      edgeFillClassName: 'fill-brand-purple',
+    },
     {
       ...RESOURCE,
       image: 'learn-3',
       imageSide: 'left',
       panelClassName: 'bg-brand-cyan-deepest',
+      edgeFillClassName: 'fill-brand-cyan-deepest',
     },
   ] as readonly Resource[],
 } as const

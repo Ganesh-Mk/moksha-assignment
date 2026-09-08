@@ -33,17 +33,39 @@ const LINEUP = [
  */
 export function BenefitCards() {
   return (
-    <section aria-labelledby="benefits-heading" className="bg-page w-full">
+    <section aria-labelledby="benefits-heading" className="bg-page relative w-full py-10 md:py-14">
       <h2 id="benefits-heading" className="sr-only">
         Why Hydra Curls works
       </h2>
 
+      {/* The hairline that runs above the pair in the reference. It is drawn, not a border:
+          the design's line ripples across the full width, and a 1px `border-t` would read as a
+          rule where the design has a wave. */}
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 1440 40"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-x-0 top-3 h-6 w-full md:top-5"
+      >
+        <path
+          d="M0 20c120-16 240-16 360 0s240 16 360 0 240-16 360 0 240 16 360 0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          className="text-ink/10"
+        />
+      </svg>
+
+      {/* The cards do not run flush to the band's edges — the design leaves white above and
+          below them, which is what the section padding above is for. */}
       <div className="grid gap-6 md:grid-cols-2">
         {benefitCards.map((card, index) => (
           <article
             key={index}
             className={cn(
               'bg-brand-cyan-soft relative isolate flex flex-col overflow-hidden',
+              'rounded-[1.25rem]',
               'px-5 py-12 md:px-10 md:py-14 xl:px-[7.5rem] xl:py-14',
               card.showLineup ? 'justify-start' : 'justify-center',
             )}

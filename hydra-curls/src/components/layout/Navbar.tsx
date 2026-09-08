@@ -64,18 +64,16 @@ export function Navbar() {
   }, [])
 
   return (
-    // The outer element is fixed but never transforms, so the reading-progress bar it carries
-    // stays on screen when the bar itself slides away. Nesting the two was the bug: the
-    // progress bar rode up with the header and vanished exactly when it was most useful.
     <header className="fixed top-0 z-30 w-full">
       <div
         className={cn(
           'w-full transition-[transform,background-color,border-color,backdrop-filter] duration-300 will-change-transform',
-          // Transparent over the hero so the two read as one surface — the hero's own artwork
-          // becomes the bar's background instead of a navy strip butting against purple. The
-          // solid state returns as soon as the reader leaves the top.
+          // Over the hero the bar carries a scrim rather than a block: a top-down gradient
+          // that anchors the white logo and links without drawing a hard navy edge across the
+          // artwork. Fully transparent left the links floating on mid-purple; a solid bar cut
+          // the hero in two. The solid state returns as soon as the reader leaves the top.
           atTop
-            ? 'border-b border-transparent bg-transparent'
+            ? 'border-b border-transparent bg-gradient-to-b from-black/75 via-black/40 to-transparent'
             : 'bg-ink/90 border-b border-white/20 backdrop-blur-md',
           hidden ? '-translate-y-full' : 'translate-y-0',
         )}
@@ -132,24 +130,6 @@ export function Navbar() {
             </SheetContent>
           </Sheet>
         </Container>
-      </div>
-
-      {/* Reading progress — a sibling of the sliding bar, not a child, so it stays put while
-          the bar hides. Driven by a scroll-linked CSS animation, so it costs no JavaScript and
-          runs on the compositor; browsers without `animation-timeline` just leave it at zero
-          width, which is why it is decorative. */}
-      <div
-        aria-hidden="true"
-        className={cn(
-          'bg-brand-cyan/25 absolute inset-x-0 top-0 h-[0.1875rem]',
-          'transition-transform duration-300',
-          // Normally it rides on the bar's lower edge. When the bar slides away it travels up
-          // with it and parks against the top of the viewport, rather than being left hanging
-          // in the space the bar used to occupy.
-          hidden ? 'translate-y-0' : 'translate-y-[4.375rem] md:translate-y-25',
-        )}
-      >
-        <div className="bg-brand-cyan scroll-progress h-full w-full" />
       </div>
     </header>
   )

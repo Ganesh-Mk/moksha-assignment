@@ -11,17 +11,50 @@
 
 |         | Performance | Accessibility | Best practices | SEO |
 | ------- | ----------- | ------------- | -------------- | --- |
-| Desktop | 98–99       | **100**       | 100            | 100 |
-| Mobile  | 92–99       | **100**       | 100            | 100 |
+| Desktop | **98**      | **100**       | 100            | 100 |
+| Mobile  | **98**      | **100**       | 100            | 100 |
 
-LCP 1.0s desktop / 2.3s mobile · **CLS 0** · page 15,250px against Figma's 15,249 · no horizontal
+LCP 1.0s desktop / 2.3s mobile · **CLS 0** · page 15,393px against Figma's 15,249 (0.9%) · no horizontal
 scroll and no sub-44px tap target at 320/375/768/1024/1440/1920.
 
-Mobile perf reads 87–89 when another heavy process shares the machine and 98–99 when it does not;
-LCP and CLS are stable either way. The earlier "mobile is stuck at 89" conclusion was mostly
-measuring CPU contention, not the page.
+Mobile perf read 87–89 when another heavy process shared the machine and 98 once it stopped; LCP
+and CLS are stable either way. The earlier "mobile is stuck at 89" conclusion was mostly measuring
+CPU contention, not the page.
 
-## Review round (fixes against the deployed build)
+## Second review round — the design's curved seams
+
+A pass comparing the deployed page against the Figma render side by side, boundary by boundary.
+The finding underneath most of the individual notes: **almost none of the design's section seams
+are straight lines, and nearly all of them had been built as straight lines.**
+
+Four silhouettes now live in `SoftWave` — `soft`, `bumpy`, `swoop` and `diagonal` — plus a
+`WavyPanelEdge` for the rippled vertical seam where a Learn & Grow panel laps its photograph.
+Applied at: new-launch → key-visual (a wave with a paler rim riding ahead of it), promise →
+ingredients, ingredients → testimonials, testimonials → experts (one long swoop), experts →
+hair-types (a diagonal, not a curve), hair-types → learn (shallow scallops).
+
+Also in this round:
+
+- **The script arc bowed the wrong way.** SVG's y axis points down, so an arc drawn with
+  sweep-flag 1 from the left end to the right end travels _over the top_. The flag was mapped to
+  the sag's sign the wrong way round, so every "positive sag" arc rendered as a hill instead of a
+  valley. Fixing it flipped the showcase arc to match the reference.
+- **That arc was also too shallow.** Reproducing Figma's 1572 chord literally left the string
+  covering only 83% of the resulting path, so its ends sat on the flattest part of the curve.
+  Pulled the chord in to 1400 with the sag scaled to match: 92% coverage, and it bows.
+- **The band under the arc was inverted** — white belongs under the circle with the cyan arriving
+  below on a curve, not the other way round.
+- **The benefit cards ran flush to their band.** The design leaves white above and below them and
+  runs a rippled hairline over the top.
+- **The experts watermark was an open arc** where the design has a closed ring. `CurvedText` takes
+  a chord and a sag, which cannot express a full revolution, so `CircularText` now does — and the
+  brand medallion was rebuilt on it rather than keeping a second copy of the same geometry.
+- Faint loop watermarks added behind the testimonial band; without them the cyan is a flat slab.
+- Navbar: gradient scrim over the hero instead of full transparency; reading-progress bar removed
+  at the user's request.
+- Section headings taken from 500 to 700.
+
+## First review round (fixes against the deployed build)
 
 Twelve issues raised off screenshots of the live site. What each turned out to be:
 

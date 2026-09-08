@@ -230,18 +230,21 @@ export function ProductShowcase() {
           glyphs at the ends of a sagging arc sit well above the SVG's own box — measured at
           160px of ink above the element at 1440px wide. Without clearance here the line rides
           up over the thumbnails above it. */}
-      <div className="bg-brand-cyan-soft relative pt-[13%]">
+      <div className="bg-page relative pt-[13%]">
         <SoftWave
-          fillClassName="fill-page"
+          fillClassName="fill-brand-cyan-soft"
           className="absolute inset-x-0 bottom-0 h-[clamp(3rem,8vw,9rem)]"
         />
 
-        {/* chord 1572, sagging 251 at 72px, measured off the bounding boxes of the 48
-            individual glyph nodes. Pulled up so it tucks under the circle's rim. */}
+        {/* Figma's 48 glyph nodes span a 1572 chord sagging 251. Reproduced literally, the
+            string only covered 83% of the resulting path, so its ends sat on the shallow part
+            of the curve and the line read as almost straight next to the reference. The chord
+            is pulled in to 1400 (sag scaled to match) so the text occupies ~92% of the arc and
+            bows the way the design does. */}
         <CurvedText
           id="showcase-arc"
-          chord={1572}
-          sag={251}
+          chord={1400}
+          sag={240}
           fontSize={72}
           className="pointer-events-none relative z-10 mx-auto w-[86%] max-w-[98.25rem] pb-[7%] text-black/45"
         >

@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Container } from '@/components/layout/Container'
-import { CurvedText } from '@/components/primitives/CurvedText'
+import { CircularText } from '@/components/primitives/CircularText'
 import { Eyebrow } from '@/components/primitives/Eyebrow'
 import { Picture } from '@/components/primitives/Picture'
 import { SectionHeading } from '@/components/primitives/SectionHeading'
@@ -23,16 +23,12 @@ export function ExpertsSaying() {
 
   return (
     <section aria-labelledby="experts-heading" className="bg-page relative w-full overflow-hidden">
-      <CurvedText
+      <CircularText
         id="experts-watermark"
-        chord={700}
-        sag={620}
-        fontSize={26}
-        fontClassName="font-curved"
-        className="text-brand-cyan/60 pointer-events-none absolute top-[2%] left-[3%] hidden w-[20%] lg:block"
+        className="text-brand-cyan/60 pointer-events-none absolute top-[14%] left-[4%] hidden w-[15%] max-w-[12rem] lg:block"
       >
         {decorativeArcText}
-      </CurvedText>
+      </CircularText>
 
       <Container className="py-14 md:py-16">
         <Eyebrow>{experts.eyebrow}</Eyebrow>

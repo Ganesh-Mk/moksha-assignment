@@ -4,6 +4,8 @@ import { Container } from '@/components/layout/Container'
 import { Eyebrow } from '@/components/primitives/Eyebrow'
 import { Picture } from '@/components/primitives/Picture'
 import { SectionHeading } from '@/components/primitives/SectionHeading'
+import { SoftWave } from '@/components/primitives/SoftWave'
+import { WavyPanelEdge } from '@/components/primitives/WavyPanelEdge'
 import { learn } from '@/content/sections'
 import { cn } from '@/lib/utils'
 
@@ -20,7 +22,15 @@ import { cn } from '@/lib/utils'
  */
 export function LearnAndGrow() {
   return (
-    <section id="learn" aria-labelledby="learn-heading" className="bg-page w-full">
+    <section id="learn" aria-labelledby="learn-heading" className="bg-page relative w-full">
+      {/* The hair-type band above ends on a row of shallow scallops in the reference, not a
+          straight edge. The wave carries this section's colour up over that one. */}
+      <SoftWave
+        fillClassName="fill-page"
+        shape="bumpy"
+        className="absolute inset-x-0 top-0 h-[clamp(2rem,4.5vw,5rem)] -translate-y-full"
+      />
+
       <Container className="py-14 md:py-20">
         <Eyebrow>{learn.eyebrow}</Eyebrow>
         <SectionHeading id="learn-heading" lines={learn.heading} className="mt-6 text-center" />
@@ -50,12 +60,19 @@ export function LearnAndGrow() {
 
             <div
               className={cn(
-                'flex flex-col justify-center px-6 py-12 md:px-12 lg:py-16',
+                'relative flex flex-col justify-center px-6 py-12 md:px-12 lg:py-16',
                 'lg:z-10 xl:px-[7.5rem]',
                 item.imageSide === 'left' ? 'lg:-ml-4' : 'lg:-mr-4',
                 item.panelClassName,
               )}
             >
+              {/* The seam between photograph and panel ripples in the design. Dropped below
+                  `lg`, where the two stack and a vertical wave would run across the join
+                  rather than along it. */}
+              <WavyPanelEdge
+                side={item.imageSide === 'left' ? 'left' : 'right'}
+                fillClassName={item.edgeFillClassName}
+              />
               <Eyebrow tone="light" align="left" className="text-left">
                 {item.eyebrow}
               </Eyebrow>

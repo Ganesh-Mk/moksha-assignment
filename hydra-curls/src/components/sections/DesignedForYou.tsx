@@ -4,7 +4,9 @@ import { ChevronRight } from 'lucide-react'
 import { Container } from '@/components/layout/Container'
 import { Eyebrow } from '@/components/primitives/Eyebrow'
 import { Picture } from '@/components/primitives/Picture'
+import { CircularText } from '@/components/primitives/CircularText'
 import { SectionHeading } from '@/components/primitives/SectionHeading'
+import { SoftWave } from '@/components/primitives/SoftWave'
 import { decorativeArcText, hairTypes } from '@/content/sections'
 import { site } from '@/content/site'
 import { cn } from '@/lib/utils'
@@ -17,22 +19,18 @@ import { cn } from '@/lib/utils'
  * arc — CurvedText's API is a chord and a sag, which cannot express 360°.
  */
 function BrandMedallion() {
-  const pathId = 'medallion-rim'
-
   return (
     <div className="relative mx-auto size-[9.5rem] md:size-[14.9375rem]">
       <svg viewBox="0 0 240 240" className="size-full" aria-hidden="true" focusable="false">
         <circle cx="120" cy="120" r="120" className="fill-brand-navy-deep" />
-        <defs>
-          {/* Starts at the top and runs clockwise, so the text reads left-to-right along the top. */}
-          <path id={pathId} d="M120 22a98 98 0 1 1 0 196 98 98 0 1 1 0-196" fill="none" />
-        </defs>
-        <text className="font-curved fill-white" fontSize="17">
-          <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
-            {decorativeArcText}
-          </textPath>
-        </text>
       </svg>
+      <CircularText
+        id="medallion"
+        className="absolute inset-0 size-full text-white"
+        textClassName="fill-white"
+      >
+        {decorativeArcText}
+      </CircularText>
       <Picture
         asset="logo-lockup-hero"
         alt={`${site.brand} ${site.product}`}
@@ -62,11 +60,20 @@ export function DesignedForYou() {
       aria-labelledby="hair-types-heading"
       className="bg-brand-cyan-soft relative w-full overflow-hidden pb-16 md:pb-24"
     >
+      {/* The band's top edge is a diagonal in the reference, not a horizontal: white carries
+          over from the section above across the upper left and the cyan starts beneath it.
+          Painted before the clouds so they sit on the white side of the line. */}
+      <SoftWave
+        fillClassName="fill-page"
+        shape="diagonal"
+        className="absolute inset-x-0 top-0 h-[clamp(5rem,18vw,20rem)]"
+      />
+
       {/* Clouds bleed off the top-left corner behind the medallion. */}
       <Picture
         asset="clouds"
         alt=""
-        className="pointer-events-none absolute -top-[2%] -left-[6%] w-[42%] opacity-90"
+        className="pointer-events-none absolute -top-[1%] -left-[6%] z-10 w-[38%] opacity-90"
         sizes="42vw"
       />
 

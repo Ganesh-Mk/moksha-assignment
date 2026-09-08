@@ -56,7 +56,10 @@ export function CurvedText({
   // R = c² / 8s + s / 2. Guard against a zero sag, which would be a straight line.
   const s = Math.abs(sag) || 1
   const radius = (chord * chord) / (8 * s) + s / 2
-  const sweep = sag >= 0 ? 1 : 0
+  // SVG's y axis points down, so a sweep of 1 from the left end to the right end travels
+  // *over the top* — a hill. A sag that drops the middle below its ends is therefore sweep 0.
+  // This was inverted, which is why the script arc bowed the opposite way to the design.
+  const sweep = sag >= 0 ? 0 : 1
 
   // Room for ascenders above the baseline and descenders below it, so glyphs are not clipped.
   const ascent = fontSize

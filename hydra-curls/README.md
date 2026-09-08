@@ -190,14 +190,14 @@ clipped), lists sub-44px tap targets, and prints the heading outline. The render
 
 |             | Performance | Accessibility | Best practices | SEO |
 | ----------- | ----------- | ------------- | -------------- | --- |
-| **Desktop** | 98–99       | **100**       | 100            | 100 |
-| **Mobile**  | 92–99       | **100**       | 100            | 100 |
+| **Desktop** | **98**      | **100**       | 100            | 100 |
+| **Mobile**  | **98**      | **100**       | 100            | 100 |
 
 LCP 1.0s desktop / 2.3s mobile · **CLS 0** · TBT 0–80ms.
 
-Mobile performance is sensitive to what else the measuring machine is doing: the same build scored
-87–89 with a second heavy process running and 98–99 once it stopped. LCP (2.3s) and CLS (0) held
-steady across every run, so those are the numbers to trust.
+Mobile performance is sensitive to what else the measuring machine is doing: an earlier build read
+87–89 with a second heavy process running and 98 once it stopped. LCP (2.3s) and CLS (0) hold
+steady across every run.
 
 ### What the page does
 

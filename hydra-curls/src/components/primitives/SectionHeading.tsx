@@ -48,7 +48,7 @@ export function SectionHeading({
       data-reveal=""
       // One step behind the eyebrow above it, so the pair reads top-down rather than together.
       style={{ '--reveal-i': 1 } as CSSProperties}
-      className={cn('text-h2 text-ink font-medium [text-wrap:normal]', className)}
+      className={cn('text-h2 text-ink font-bold [text-wrap:normal]', className)}
     >
       {lines.map((line, lineIndex) => (
         // Lines and runs are positional content with no stable id; the index is the identity.

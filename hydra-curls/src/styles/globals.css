@@ -349,21 +349,6 @@
   }
 }
 
-/*
- * Reading-progress bar, driven by a scroll-linked animation rather than a scroll listener — it
- * runs on the compositor and costs no JavaScript at all. Browsers without `animation-timeline`
- * never advance it, which is why it starts at zero width and is purely decorative: nothing is
- * lost when it does not animate.
- */
-@keyframes progress-grow {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
 @utility hero-enter {
   animation: hero-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   animation-delay: calc(var(--enter-i, 0) * 140ms);
@@ -371,16 +356,6 @@
 
 @utility animate-cue {
   animation: cue-bob 2.2s ease-in-out infinite;
-}
-
-@utility scroll-progress {
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-
-  @supports (animation-timeline: scroll()) {
-    animation: progress-grow linear;
-    animation-timeline: scroll(root block);
-  }
 }
 
 /* The hydration clock's moving parts. Rotation only, so all three run on the compositor. */
