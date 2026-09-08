@@ -167,8 +167,8 @@ class TestPromptInjection:
             model=model,
         )
 
-        assert "64,900" not in reply
-        assert "paid" not in reply.lower()
+        assert "64,900" not in reply.text
+        assert "paid" not in reply.text.lower()
 
         # The load-bearing assertion: the tool ran, and the service refused it. The reply text is
         # produced by a stub and proves nothing on its own.
@@ -227,8 +227,12 @@ class TestPromptInjection:
             "search_products",
             "get_my_orders",
             "get_order_status",
+            "add_to_cart",
         }
-        for forbidden in ("create", "update", "delete", "cancel", "refund", "set_", "place"):
+        # `add_to_cart` is the one tool that changes anything the customer sees, and what it
+        # changes is a *proposal* the browser may apply to its own cart. It writes no row, takes
+        # no money and creates no order. Everything below is still absent by construction.
+        for forbidden in ("create", "update", "delete", "cancel", "refund", "set_", "place", "pay"):
             assert not any(forbidden in name for name in tool_names)
 
 
@@ -313,4 +317,4 @@ class TestRateLimiting:
             model=ScriptedChatModel([AIMessage(content="b")]),
         )
 
-        assert reply == "b"
+        assert reply.text == "b"

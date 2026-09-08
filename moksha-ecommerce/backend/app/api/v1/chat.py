@@ -7,34 +7,16 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
 
 from app.core.deps import CurrentUser, DbSession
 from app.core.exceptions import DomainError
 from app.core.logging import get_logger
+from app.schemas.chat import ChatRequest, ChatResponse
 from app.services import chat_service
 
 logger = get_logger(__name__)
 
 router = APIRouter()
-
-
-class ChatTurn(BaseModel):
-    role: str = Field(pattern="^(user|assistant)$")
-    content: str = Field(max_length=4000)
-
-
-class ChatRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)
-    history: list[ChatTurn] = Field(
-        default_factory=list,
-        max_length=40,
-        description="Prior turns. Trimmed server-side to the most recent few.",
-    )
-
-
-class ChatResponse(BaseModel):
-    reply: str
 
 
 CHAT_DESCRIPTION = """
@@ -50,8 +32,11 @@ Ownership is re-checked inside the order service regardless.
 demand with no ceiling is a billing incident waiting to happen. Returns **429** with
 `Retry-After`.
 
-The agent is read-only. It cannot place, cancel or modify orders, and it cannot edit the
-catalogue.
+**The agent can add to the cart, and can do nothing else that changes anything.** `add_to_cart`
+returns *proposals* — validated cart lines the browser applies to the cart it owns (there is no
+server-side cart; see D-012). It cannot place an order, cannot take payment, and cannot edit the
+catalogue. The customer still opens the cart and checks out, and the amount they are charged is
+still recomputed from database prices inside the order service.
 """
 
 
@@ -68,7 +53,7 @@ async def chat(payload: ChatRequest, session: DbSession, user: CurrentUser) -> C
         message=payload.message,
         history=[t.model_dump() for t in payload.history],
     )
-    return ChatResponse(reply=reply)
+    return ChatResponse(reply=reply.text, cart=reply.cart)
 
 
 @router.post(
@@ -77,8 +62,9 @@ async def chat(payload: ChatRequest, session: DbSession, user: CurrentUser) -> C
     description=(
         CHAT_DESCRIPTION
         + "\n\nStreams **Server-Sent Events**. Each `data:` line is a JSON object: "
-        '`{"delta": "..."}` for text, `{"done": true}` at the end, or '
-        '`{"error": {...}}` if something failed mid-stream.\n\n'
+        '`{"delta": "..."}` for text, `{"cart": [...]}` once at the end if the agent added '
+        'anything, `{"done": true}` to finish, or `{"error": {...}}` if something failed '
+        "mid-stream.\n\n"
         "SSE rather than WebSockets: this is one-directional server-to-client text over plain "
         "HTTP, which reconnects on its own and needs no protocol upgrade through the proxy."
     ),
@@ -88,13 +74,17 @@ async def chat_stream(
 ) -> StreamingResponse:
     async def event_stream() -> AsyncIterator[str]:
         try:
-            async for delta in chat_service.stream_reply(
+            async for event in chat_service.stream_reply(
                 session,
                 user=user,
                 message=payload.message,
                 history=[t.model_dump() for t in payload.history],
             ):
-                yield f"data: {json.dumps({'delta': delta})}\n\n"
+                if isinstance(event, chat_service.TextDelta):
+                    yield f"data: {json.dumps({'delta': event.text})}\n\n"
+                else:
+                    lines = json.dumps({"cart": [p.model_dump() for p in event.proposals]})
+                    yield f"data: {lines}\n\n"
         except DomainError as exc:
             # The response status is already 200 by the time streaming starts, so an error has to
             # travel *inside* the stream. The client shows this as a message rather than hanging

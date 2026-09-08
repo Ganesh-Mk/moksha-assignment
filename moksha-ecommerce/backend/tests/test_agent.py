@@ -138,7 +138,7 @@ class TestTheGraphRunsToolsAgainstRealData:
             db, user=customer, message="how much is the curl gel?", model=model
         )
 
-        assert "649" in reply
+        assert "649" in reply.text
 
         # The assertion that matters: real data came back from the database, not from the model.
         tool_messages = [

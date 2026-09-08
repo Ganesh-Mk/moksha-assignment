@@ -118,7 +118,13 @@ export function ProductsPage() {
           className={cn(
             "no-scrollbar flex items-center gap-1.5",
             "-mx-4 overflow-x-auto px-4",
-            "sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0",
+            // `overflow-x: auto` forces `overflow-y` to compute to `auto` too —
+            // CSS will not let one axis clip while the other stays visible. The
+            // pills were losing a couple of pixels off the bottom to that. The
+            // self-cancelling vertical padding gives them room without moving
+            // anything on the page.
+            "-my-1.5 py-1.5",
+            "sm:mx-0 sm:my-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0",
           )}
         >
           <FilterChip active={!category} onClick={() => update("category", null)}>

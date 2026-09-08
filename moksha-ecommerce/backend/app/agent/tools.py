@@ -26,6 +26,7 @@ from typing import Any
 from langchain_core.tools import StructuredTool
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.cart import MAX_PER_LINE, CartDraft
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
 from app.models import User
@@ -53,13 +54,19 @@ def _product_summary(product: Any) -> dict[str, Any]:
     }
 
 
-def build_tools(session: AsyncSession, user: User) -> list[StructuredTool]:
+def build_tools(
+    session: AsyncSession, user: User, cart: CartDraft | None = None
+) -> list[StructuredTool]:
     """Construct the tool set bound to one request's session and one verified user.
 
     Built per request rather than defined at module level, precisely so `user` can be a closure
     variable. A module-level tool would have to receive the user as an argument, which is the
     vulnerability this design exists to remove.
+
+    `cart` collects anything the agent proposes adding. Defaulted so a caller that does not care
+    about proposals — every test of the read-only tools — need not construct one.
     """
+    draft = cart if cart is not None else CartDraft()
 
     async def list_products(category: str | None = None, in_stock_only: bool = False) -> Any:
         """List products in the store, optionally filtered by category.
@@ -170,6 +177,57 @@ def build_tools(session: AsyncSession, user: User) -> list[StructuredTool]:
             ],
         }
 
+    async def add_to_cart(name_or_slug: str, quantity: int = 1) -> Any:
+        """Add a product to the customer's cart so they can pay for it.
+
+        This does not place an order and does not take payment. It puts the item in their cart;
+        they then open the cart and check out themselves. Use it when a customer asks you to
+        order or buy something, and tell them to open the cart to pay.
+
+        Args:
+            name_or_slug: The product as the customer said it, e.g. "curl gel".
+            quantity: How many. Defaults to 1.
+        """
+        if quantity < 1:
+            return {"added": False, "message": "Quantity must be at least 1."}
+
+        product = await product_service.find_product(session, name_or_slug)
+        if product is None:
+            return {"added": False, "message": f"No product matching “{name_or_slug}”."}
+        if not product.is_active:
+            return {"added": False, "message": f"{product.name} is no longer sold."}
+        if product.stock <= 0:
+            return {"added": False, "message": f"{product.name} is sold out."}
+
+        proposal = draft.add(product, quantity)
+        logger.info(
+            "agent_tool",
+            extra={
+                "tool": "add_to_cart",
+                "user_id": user.id,
+                "product_id": product.id,
+                "quantity": proposal.quantity,
+            },
+        )
+
+        # The clamp is reported rather than hidden: a model told "added 5" when 2 were added
+        # will cheerfully tell the customer the wrong thing.
+        short = proposal.quantity < quantity
+        return {
+            "added": True,
+            "product": product.name,
+            "quantity": proposal.quantity,
+            "unit_price": _money(product.price_cents, product.currency),
+            "line_total": _money(product.price_cents * proposal.quantity, product.currency),
+            "message": (
+                f"Only {proposal.quantity} in stock, so {proposal.quantity} added."
+                if short
+                else f"{proposal.quantity} of {product.name} added to the cart."
+            )
+            + " They pay by opening the cart and checking out — you cannot do that for them.",
+            "max_per_line": MAX_PER_LINE,
+        }
+
     # StructuredTool.from_function infers each schema from the signature and docstring. Note what
     # the order tools' schemas contain: `get_my_orders` takes nothing at all, and
     # `get_order_status` takes only an order id. Neither has a user field for the model to fill.
@@ -179,4 +237,5 @@ def build_tools(session: AsyncSession, user: User) -> list[StructuredTool]:
         StructuredTool.from_function(coroutine=search_products, name="search_products"),
         StructuredTool.from_function(coroutine=get_my_orders, name="get_my_orders"),
         StructuredTool.from_function(coroutine=get_order_status, name="get_order_status"),
+        StructuredTool.from_function(coroutine=add_to_cart, name="add_to_cart"),
     ]

@@ -106,6 +106,17 @@ export interface DashboardStats {
   low_stock: { id: number; name: string; slug: string; stock: number }[];
 }
 
+export interface CartProposal {
+  product_id: number;
+  slug: string;
+  name: string;
+  quantity: number;
+  unit_price_cents: number;
+  currency: string;
+  image_url: string | null;
+  stock: number;
+}
+
 export interface TimeSeriesPoint {
   date: string;
   revenue_cents: number;

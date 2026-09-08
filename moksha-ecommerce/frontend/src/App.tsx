@@ -1,8 +1,9 @@
 import { Loader2 } from "lucide-react";
 import { Suspense, lazy, useState } from "react";
-import { Link, Navigate, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { CartSheet } from "@/components/cart/CartSheet";
+import { ScrollToTop } from "@/components/system/ScrollToTop";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { Container } from "@/components/layout/Container";
 import { Header } from "@/components/layout/Header";
@@ -62,6 +63,7 @@ function RouteFallback() {
 
 export function App() {
   const [cartOpen, setCartOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -74,9 +76,13 @@ export function App() {
         Skip to content
       </a>
 
+      <ScrollToTop />
       <Header onOpenCart={() => setCartOpen(true)} />
 
-      <main id="main" className="flex-1">
+      {/* `key` on the path remounts this wrapper on every navigation, which
+          restarts the fade. That is the transition — the page arrives, rather
+          than the old one scrolling away. */}
+      <main id="main" key={location.pathname} className="flex-1 animate-[fade-in_var(--dur-base)_var(--ease-out)]">
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Navigate to="/products" replace />} />
@@ -145,7 +151,7 @@ export function App() {
       <Footer />
 
       <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
-      <ChatWidget />
+      <ChatWidget onOpenCart={() => setCartOpen(true)} />
     </div>
   );
 }

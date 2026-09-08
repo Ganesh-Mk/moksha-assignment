@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { MAX_PER_LINE, selectItemCount, selectSubtotalCents, useCart } from "@/store/cart";
-import type { Product } from "@/types/api";
+import type { CartProposal, Product } from "@/types/api";
 
 function product(overrides: Partial<Product> = {}): Product {
   return {
@@ -98,5 +98,66 @@ describe("cart", () => {
 
     expect(useCart.getState().lines).toEqual([]);
     expect(selectSubtotalCents(useCart.getState())).toBe(0);
+  });
+});
+
+describe("cart lines proposed by the support agent", () => {
+  function proposal(overrides: Partial<CartProposal> = {}): CartProposal {
+    return {
+      product_id: 1,
+      slug: "curl-defining-gel",
+      name: "Curl Defining Gel",
+      quantity: 2,
+      unit_price_cents: 64900,
+      currency: "INR",
+      image_url: "/products/curl-defining-gel.svg",
+      stock: 10,
+      ...overrides,
+    };
+  }
+
+  beforeEach(() => {
+    useCart.getState().clear();
+  });
+
+  it("adds a proposed line to the same cart a button click fills", () => {
+    useCart.getState().addProposal(proposal());
+
+    const [line] = useCart.getState().lines;
+    expect(line?.productId).toBe(1);
+    expect(line?.quantity).toBe(2);
+    expect(selectSubtotalCents(useCart.getState())).toBe(129800);
+  });
+
+  it("replaces rather than accumulates, because the server already merged", () => {
+    // The agent's draft merges its own tool calls and clamps against live stock,
+    // so its quantity is the total it means. Adding to what is here would double
+    // an agent turn the customer simply asked it to repeat.
+    useCart.getState().addProposal(proposal({ quantity: 2 }));
+    useCart.getState().addProposal(proposal({ quantity: 3 }));
+
+    expect(useCart.getState().lines).toHaveLength(1);
+    expect(useCart.getState().lines[0]?.quantity).toBe(3);
+  });
+
+  it("still clamps to stock, even though the server did", () => {
+    // Belt and braces on purpose: this payload crossed the network, and the
+    // stepper's ceiling comes from the same field.
+    useCart.getState().addProposal(proposal({ quantity: 99, stock: 4 }));
+
+    expect(useCart.getState().lines[0]?.quantity).toBe(4);
+  });
+
+  it("never exceeds the per-line ceiling", () => {
+    useCart.getState().addProposal(proposal({ quantity: 5000, stock: 100000 }));
+
+    expect(useCart.getState().lines[0]?.quantity).toBe(MAX_PER_LINE);
+  });
+
+  it("leaves other lines alone", () => {
+    useCart.getState().add(product({ id: 2, slug: "argan-hair-oil" }), 1);
+    useCart.getState().addProposal(proposal());
+
+    expect(useCart.getState().lines.map((l) => l.productId)).toEqual([2, 1]);
   });
 });

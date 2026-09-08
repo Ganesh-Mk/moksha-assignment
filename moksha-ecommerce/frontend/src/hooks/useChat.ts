@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 
 import { apiBaseUrl, tokenStore } from "@/lib/api";
+import { useCart } from "@/store/cart";
+import type { CartProposal } from "@/types/api";
 
 /**
  * The support agent conversation, over Server-Sent Events.
@@ -18,10 +20,17 @@ export interface ChatMessage {
   content: string;
   /** Set on an assistant turn that failed, so the UI can offer a retry. */
   error?: string;
+  /**
+   * Lines this turn put in the cart. Kept on the message rather than in one
+   * shared slot so the "view cart" prompt stays attached to the turn that
+   * caused it, and scrolling back up still shows what was added when.
+   */
+  cart?: CartProposal[];
 }
 
 interface StreamEvent {
   delta?: string;
+  cart?: CartProposal[];
   done?: boolean;
   error?: { code: string; message: string };
 }
@@ -30,6 +39,7 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const addToCart = useCart((state) => state.addProposal);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -123,6 +133,14 @@ export function useChat() {
 
             if (event.error) {
               updateAssistant((m) => ({ ...m, error: event.error?.message ?? "Something failed." }));
+            } else if (event.cart) {
+              // The server has already checked the product exists, is live and
+              // had stock. What it sent is still only a *proposal*: it lands in
+              // the same client cart a button click would fill, and the price
+              // charged is recomputed server-side at checkout regardless.
+              const proposals = event.cart;
+              for (const line of proposals) addToCart(line);
+              updateAssistant((m) => ({ ...m, cart: proposals }));
             } else if (event.delta) {
               updateAssistant((m) => ({ ...m, content: m.content + event.delta }));
             }
@@ -137,11 +155,11 @@ export function useChat() {
         // An assistant turn that produced nothing at all would render as an
         // empty bubble; drop it instead.
         setMessages((current) =>
-          current.filter((m) => m.id !== assistantId || m.content || m.error),
+          current.filter((m) => m.id !== assistantId || m.content || m.error || m.cart?.length),
         );
       }
     },
-    [isStreaming],
+    [isStreaming, addToCart],
   );
 
   return { messages, isStreaming, send, reset };

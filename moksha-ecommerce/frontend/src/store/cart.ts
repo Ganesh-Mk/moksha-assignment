@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import type { Product } from "@/types/api";
+import type { CartProposal, Product } from "@/types/api";
 
 /**
  * The cart — the only genuinely client-owned state in this application
@@ -38,6 +38,15 @@ export interface CartLine {
 interface CartState {
   lines: CartLine[];
   add: (product: Product, quantity?: number) => void;
+  /**
+   * Apply a line the support agent proposed.
+   *
+   * A separate action rather than reusing `add`, because a proposal is not a
+   * `Product` — it is a narrower payload the server assembled, and widening
+   * `add` to accept either would mean every caller proving which it has. The
+   * merge rule is identical, and for the identical reason.
+   */
+  addProposal: (proposal: CartProposal) => void;
   setQuantity: (productId: number, quantity: number) => void;
   remove: (productId: number) => void;
   clear: () => void;
@@ -85,6 +94,29 @@ export const useCart = create<CartState>()(
                 stock: product.stock,
               },
             ],
+          };
+        }),
+
+      addProposal: (proposal) =>
+        set((state) => {
+          const existing = state.lines.find((line) => line.productId === proposal.product_id);
+          const line: CartLine = {
+            productId: proposal.product_id,
+            slug: proposal.slug,
+            // The server already merged and clamped against live stock, so its
+            // quantity replaces rather than adds to what is here. Adding would
+            // double an agent turn the user asked to repeat.
+            quantity: Math.min(proposal.quantity, proposal.stock, MAX_PER_LINE),
+            name: proposal.name,
+            priceCents: proposal.unit_price_cents,
+            currency: proposal.currency,
+            imageUrl: proposal.image_url,
+            stock: proposal.stock,
+          };
+          return {
+            lines: existing
+              ? state.lines.map((l) => (l.productId === proposal.product_id ? line : l))
+              : [...state.lines, line],
           };
         }),
 

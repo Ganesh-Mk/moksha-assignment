@@ -7,6 +7,7 @@ graph never builds its own, which is the seam the test suite substitutes a stub 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
@@ -14,6 +15,7 @@ from langgraph.graph.state import CompiledStateGraph
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agent.cart import CartDraft
 from app.agent.graph import AgentState, build_graph
 from app.agent.tools import build_tools
 from app.config import settings
@@ -21,6 +23,7 @@ from app.core.exceptions import ValidationError
 from app.core.logging import get_logger
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.models import User
+from app.schemas.chat import CartProposal
 
 logger = get_logger(__name__)
 
@@ -29,6 +32,36 @@ MAX_HISTORY_TURNS = 10
 
 
 _limiter = SlidingWindowRateLimiter(limit=settings.chat_rate_limit_per_minute, label="chat")
+
+
+@dataclass(frozen=True)
+class TextDelta:
+    """A piece of the assistant's reply, as the model produces it."""
+
+    text: str
+
+
+@dataclass(frozen=True)
+class CartUpdate:
+    """Cart lines the agent proposed during this turn, emitted once at the end.
+
+    At the end rather than as they happen, deliberately: the agent may add two products across
+    two tool calls, and the client should apply one coherent set rather than watch its cart
+    grow mid-sentence.
+    """
+
+    proposals: list[CartProposal]
+
+
+StreamEvent = TextDelta | CartUpdate
+
+
+@dataclass(frozen=True)
+class Reply:
+    """A non-streaming turn: the text, plus anything it wants added to the cart."""
+
+    text: str
+    cart: list[CartProposal] = field(default_factory=list)
 
 
 def build_chat_model() -> BaseChatModel:
@@ -89,7 +122,7 @@ def _prepare(
     message: str,
     history: list[dict[str, str]] | None,
     model: BaseChatModel | None,
-) -> tuple[CompiledStateGraph[AgentState, None, AgentState, AgentState], AgentState]:
+) -> tuple[CompiledStateGraph[AgentState, None, AgentState, AgentState], AgentState, CartDraft]:
     """Validate, rate-limit, and compile the graph. Shared by both entry points.
 
     Rate limiting happens here rather than in the router so it applies however the agent is
@@ -99,9 +132,13 @@ def _prepare(
     _limiter.check(str(user.id))
 
     chat_model = model if model is not None else build_chat_model()
+    # The draft is created here and handed to the tools as a closure variable, the same
+    # construction the identity binding uses: the model can append to it through one tool and
+    # cannot address it any other way.
+    cart = CartDraft()
     graph = build_graph(
         model=chat_model,
-        tools=build_tools(session, user),
+        tools=build_tools(session, user, cart),
         max_steps=settings.agent_max_steps,
     )
     state: AgentState = {
@@ -111,7 +148,7 @@ def _prepare(
     }
 
     logger.info("chat_started", extra={"user_id": user.id, "message_length": len(text)})
-    return graph, state
+    return graph, state, cart
 
 
 async def stream_reply(
@@ -121,7 +158,7 @@ async def stream_reply(
     message: str,
     history: list[dict[str, str]] | None = None,
     model: BaseChatModel | None = None,
-) -> AsyncIterator[str]:
+) -> AsyncIterator[StreamEvent]:
     """Run the agent and yield the reply as it is produced.
 
     `model` is injectable so tests can pass a stub. In production it is None and the real one is
@@ -131,7 +168,7 @@ async def stream_reply(
     blank box for that long reads as broken. It costs nothing extra — the tokens are generated
     either way.
     """
-    graph, state = _prepare(session, user=user, message=message, history=history, model=model)
+    graph, state, cart = _prepare(session, user=user, message=message, history=history, model=model)
 
     emitted = False
     async for chunk, _meta in graph.astream(
@@ -144,14 +181,17 @@ async def stream_reply(
             piece = chunk.content if isinstance(chunk.content, str) else _text_of(chunk.content)
             if piece:
                 emitted = True
-                yield piece
+                yield TextDelta(piece)
 
     if not emitted:
         # A model that only ever asked for tools and then stopped would otherwise stream nothing
         # and leave an empty bubble on screen.
-        yield "I could not find an answer to that. Could you rephrase it?"
+        yield TextDelta("I could not find an answer to that. Could you rephrase it?")
 
-    logger.info("chat_completed", extra={"user_id": user.id})
+    if cart:
+        yield CartUpdate(cart.proposals)
+
+    logger.info("chat_completed", extra={"user_id": user.id, "cart_lines": len(cart.proposals)})
 
 
 def _text_of(content: object) -> str:
@@ -178,7 +218,7 @@ async def complete_reply(
     message: str,
     history: list[dict[str, str]] | None = None,
     model: BaseChatModel | None = None,
-) -> str:
+) -> Reply:
     """Non-streaming variant, for callers that cannot consume SSE.
 
     Runs the graph with `ainvoke` rather than reassembling `stream_reply`. Deliberate: token
@@ -186,7 +226,7 @@ async def complete_reply(
     would make a plain request fail for a model that only implements a single-shot completion.
     The two paths share `_prepare`, so validation and rate limiting cannot diverge.
     """
-    graph, state = _prepare(session, user=user, message=message, history=history, model=model)
+    graph, state, cart = _prepare(session, user=user, message=message, history=history, model=model)
 
     result = await graph.ainvoke(state)
 
@@ -194,7 +234,12 @@ async def complete_reply(
         if isinstance(msg, AIMessage) and not msg.tool_calls:
             text = _text_of(msg.content)
             if text.strip():
-                logger.info("chat_completed", extra={"user_id": user.id})
-                return text
+                logger.info(
+                    "chat_completed",
+                    extra={"user_id": user.id, "cart_lines": len(cart.proposals)},
+                )
+                return Reply(text=text, cart=cart.proposals)
 
-    return "I could not find an answer to that. Could you rephrase it?"
+    return Reply(
+        text="I could not find an answer to that. Could you rephrase it?", cart=cart.proposals
+    )
