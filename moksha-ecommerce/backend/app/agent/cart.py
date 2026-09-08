@@ -32,6 +32,9 @@ class CartDraft:
 
     def __init__(self) -> None:
         self._lines: dict[int, CartProposal] = {}
+        # Bumped on every accepted add. The streaming endpoint watches it so it can send the
+        # proposal the moment it exists rather than after the model has finished talking.
+        self.version = 0
 
     def add(self, product: Product, quantity: int) -> CartProposal:
         """Record a proposed line, merging with any earlier proposal for the same product.
@@ -56,6 +59,7 @@ class CartDraft:
             stock=product.stock,
         )
         self._lines[product.id] = proposal
+        self.version += 1
         return proposal
 
     @property

@@ -31,7 +31,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputProps, "type
             aria-pressed={revealed}
             className={cn(
               "flex size-7 items-center justify-center rounded-sm text-ink-subtle",
-              "transition-colors duration-[--dur-fast] hover:text-ink",
+              "transition-colors duration-(--dur-fast) hover:text-ink",
             )}
           >
             <Icon className="size-3.5" aria-hidden />

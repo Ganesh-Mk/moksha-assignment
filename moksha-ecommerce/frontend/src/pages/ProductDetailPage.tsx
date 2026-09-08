@@ -198,7 +198,7 @@ function StepperButton({
       disabled={disabled}
       className={cn(
         "flex h-full w-10 items-center justify-center text-ink-muted",
-        "transition-colors duration-[--dur-fast] hover:text-ink",
+        "transition-colors duration-(--dur-fast) hover:text-ink",
         "disabled:pointer-events-none disabled:opacity-35",
       )}
     >

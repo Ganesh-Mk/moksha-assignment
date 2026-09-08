@@ -26,7 +26,7 @@ export function AdminPageHeader({
     <header className="mb-5">
       <Link
         to="/admin"
-        className="inline-flex items-center gap-1.5 rounded-sm text-xs text-ink-muted transition-colors duration-[--dur-fast] hover:text-ink"
+        className="inline-flex items-center gap-1.5 rounded-sm text-xs text-ink-muted transition-colors duration-(--dur-fast) hover:text-ink"
       >
         <ArrowLeft className="size-3.5" aria-hidden />
         Back to Admin

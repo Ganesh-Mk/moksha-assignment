@@ -98,7 +98,7 @@ export function AdminProductsPage() {
                   <tr
                     key={product.id}
                     className={cn(
-                      "transition-colors duration-[--dur-fast] hover:bg-surface-hover",
+                      "transition-colors duration-(--dur-fast) hover:bg-surface-hover",
                       !product.is_active && "opacity-60",
                     )}
                   >

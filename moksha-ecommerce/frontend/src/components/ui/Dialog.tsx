@@ -73,7 +73,7 @@ export function DialogContent({
           <RadixDialog.Close
             className={cn(
               "-mr-1 -mt-1 rounded-md p-1.5 text-ink-subtle",
-              "transition-colors duration-[--dur-fast] hover:bg-surface-hover hover:text-ink",
+              "transition-colors duration-(--dur-fast) hover:bg-surface-hover hover:text-ink",
             )}
           >
             <X className="size-4" aria-hidden />
@@ -134,7 +134,7 @@ export function SheetContent({
           <RadixDialog.Close
             className={cn(
               "-mr-1 -mt-1 rounded-md p-1.5 text-ink-subtle",
-              "transition-colors duration-[--dur-fast] hover:bg-surface-hover hover:text-ink",
+              "transition-colors duration-(--dur-fast) hover:bg-surface-hover hover:text-ink",
             )}
           >
             <X className="size-4" aria-hidden />

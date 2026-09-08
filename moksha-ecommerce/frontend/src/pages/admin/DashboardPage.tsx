@@ -218,7 +218,7 @@ export function AdminDashboardPage() {
                 // rather than blanking, so switching ranges reads as the same
                 // chart changing rather than a new one arriving.
                 className={cn(
-                  "transition-opacity duration-[--dur-base]",
+                  "transition-opacity duration-(--dur-base)",
                   seriesFetching && "opacity-60",
                 )}
               />
@@ -294,7 +294,7 @@ function SegmentedControl<T extends string | number>({
           onClick={() => onChange(option.value)}
           className={cn(
             "rounded-sm px-2.5 py-1 text-xs font-medium",
-            "transition-[background-color,color,box-shadow] duration-[--dur-fast] ease-out",
+            "transition-[background-color,color,box-shadow] duration-(--dur-fast) ease-out",
             option.value === value
               ? "bg-surface text-ink shadow-raised"
               : "text-ink-muted hover:text-ink",

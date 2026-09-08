@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { apiBaseUrl, tokenStore } from "@/lib/api";
+import { readSseStream } from "@/lib/sse";
 import { useCart } from "@/store/cart";
 import type { CartProposal } from "@/types/api";
 
@@ -107,43 +108,29 @@ export function useChat() {
           return;
         }
 
-        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-        let buffer = "";
-
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += value;
-
-          // Split on the SSE record separator. A chunk can end mid-record, so
-          // the trailing fragment is kept in the buffer for the next read.
-          const records = buffer.split("\n\n");
-          buffer = records.pop() ?? "";
-
-          for (const record of records) {
-            const line = record.trim();
-            if (!line.startsWith("data:")) continue;
-
-            let event: StreamEvent;
-            try {
-              event = JSON.parse(line.slice(5).trim()) as StreamEvent;
-            } catch {
-              continue; // a malformed record must not kill the whole stream
-            }
-
-            if (event.error) {
-              updateAssistant((m) => ({ ...m, error: event.error?.message ?? "Something failed." }));
-            } else if (event.cart) {
-              // The server has already checked the product exists, is live and
-              // had stock. What it sent is still only a *proposal*: it lands in
-              // the same client cart a button click would fill, and the price
-              // charged is recomputed server-side at checkout regardless.
-              const proposals = event.cart;
-              for (const line of proposals) addToCart(line);
-              updateAssistant((m) => ({ ...m, cart: proposals }));
-            } else if (event.delta) {
-              updateAssistant((m) => ({ ...m, content: m.content + event.delta }));
-            }
+        // Parsing lives in `lib/sse.ts` so it can be tested against the awkward
+        // cases a network actually produces — a record split mid-JSON, a stream
+        // that ends without its final blank line. The version that used to be
+        // inline here dropped the buffer on the last read, which loses whatever
+        // the turn concluded with.
+        for await (const event of readSseStream<StreamEvent>(response.body)) {
+          if (event.error) {
+            updateAssistant((m) => ({ ...m, error: event.error?.message ?? "Something failed." }));
+          } else if (event.cart) {
+            // The server has already checked the product exists, is live and
+            // had stock. What it sent is still only a *proposal*: it lands in
+            // the same client cart a button click would fill, and the price
+            // charged is recomputed server-side at checkout regardless.
+            //
+            // The payload is the whole draft, not a delta, and `addProposal`
+            // keys on product id — so a repeated event is idempotent. That is
+            // what lets the server send it early and again, rather than once at
+            // the end where a dropped connection loses it.
+            const proposals = event.cart;
+            for (const line of proposals) addToCart(line);
+            updateAssistant((m) => ({ ...m, cart: proposals }));
+          } else if (event.delta) {
+            updateAssistant((m) => ({ ...m, content: m.content + event.delta }));
           }
         }
       } catch (error) {

@@ -257,7 +257,7 @@ function FilterChip({
         // h-9 matches the search input. Two heights side by side read as two unrelated
         // controls; one height reads as a single filter strip.
         "h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-xs capitalize",
-        "transition-[background-color,border-color,color] duration-[--dur-fast]",
+        "transition-[background-color,border-color,color] duration-(--dur-fast)",
         active
           ? "border-accent bg-accent text-accent-ink"
           : "border-line-strong bg-surface text-ink-muted hover:border-ink-subtle hover:text-ink",

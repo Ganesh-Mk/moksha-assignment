@@ -34,6 +34,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from app.api.v1 import auth as auth_router
 from app.config import settings
 from app.core.deps import get_google_verifier
 from app.core.platform import apply_windows_event_loop_policy
@@ -41,6 +42,7 @@ from app.core.security import create_token
 from app.database import _async_url, get_db
 from app.main import create_app
 from app.models import Base, User, UserRole
+from app.services import chat_service
 from tests.fakes import FakeGoogleVerifier
 
 apply_windows_event_loop_policy()
@@ -99,6 +101,20 @@ async def db(sessionmaker_: async_sessionmaker[AsyncSession]) -> AsyncGenerator[
     """A session for arranging fixtures and asserting on state directly."""
     async with sessionmaker_() as session:
         yield session
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiters() -> None:
+    """Give every test a fresh rate-limit budget.
+
+    The limiters are module-level singletons — deliberately, because that is what they are in
+    production too. Without this the suite is order-dependent in the worst way: add a test that
+    sends one more chat turn as the same user and some *earlier* test starts failing with a 429,
+    pointing at code that did not change. Resetting is not weakening the limits; the tests that
+    exercise them install their own limiter and exhaust it inside the test.
+    """
+    chat_service._limiter._hits.clear()
+    auth_router._demo_login_limiter._hits.clear()
 
 
 @pytest.fixture

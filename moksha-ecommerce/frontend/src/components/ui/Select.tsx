@@ -51,7 +51,7 @@ export function Select({
           className={cn(
             "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-line-strong",
             "bg-surface px-2.5 text-sm text-ink",
-            "transition-[border-color,box-shadow] duration-[--dur-fast]",
+            "transition-[border-color,box-shadow] duration-(--dur-fast)",
             "hover:border-ink-subtle",
             "focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-ring)] focus:outline-none",
             "data-[placeholder]:text-ink-subtle",

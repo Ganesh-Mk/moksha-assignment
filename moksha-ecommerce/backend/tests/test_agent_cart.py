@@ -173,11 +173,17 @@ class TestProposalsReachTheClient:
 
         assert reply.cart == []
 
-    async def test_the_stream_emits_one_cart_event_before_done(
+    async def test_every_cart_event_carries_the_complete_draft(
         self, client: AsyncClient, customer: User, catalogue: None
     ) -> None:
-        """One event at the end, not one per tool call: the agent may add two products across
-        two calls, and the client should apply a single coherent set."""
+        """Two tool calls can produce two events, and that is fine — because each one carries the
+        whole draft rather than the delta.
+
+        This used to assert exactly one event, emitted at the end. That was tidier and worse: it
+        meant a connection dropped between the tool running and the model finishing its sentence
+        lost a proposal the server had already validated. Cumulative payloads let it be sent as
+        soon as it is true, as often as it changes, without the cart double-counting — the client
+        keys on product id and replaces."""
         import app.services.chat_service as cs
 
         original = cs.build_chat_model
@@ -204,12 +210,21 @@ class TestProposalsReachTheClient:
         ]
         cart_events = [e for e in events if "cart" in e]
 
-        assert len(cart_events) == 1
+        assert cart_events, "no cart event reached the client"
         assert events[-1] == {"done": True}
-        lines = {line["slug"]: line["quantity"] for line in cart_events[0]["cart"]}
+
+        # The last one is the complete set, whatever came before it.
+        lines = {line["slug"]: line["quantity"] for line in cart_events[-1]["cart"]}
         assert lines == {"curl-defining-gel": 2, "argan-hair-oil": 1}
+
+        # Every event is a prefix-free snapshot, never a delta: applying any one of them in
+        # isolation leaves the cart in a state the server actually intended.
+        for event in cart_events:
+            slugs = [line["slug"] for line in event["cart"]]
+            assert len(slugs) == len(set(slugs))
+
         # The payload carries what the browser needs to render a cart line without refetching.
-        assert cart_events[0]["cart"][0]["unit_price_cents"] == 64_900
+        assert cart_events[-1]["cart"][0]["unit_price_cents"] == 64_900
 
     async def test_the_cart_endpoint_still_requires_authentication(
         self, client: AsyncClient
@@ -218,3 +233,83 @@ class TestProposalsReachTheClient:
         response = await client.post(f"{API}/chat", json={"message": "add the gel"})
 
         assert response.status_code == 401
+
+
+class TestTheProposalIsSentEarly:
+    """The proposal is a fact the moment the tool returns, so it must not wait for the prose.
+
+    Holding it until the model finishes composing means a stream cut off in between loses work the
+    server has already done and validated — and the customer is left reading a reply that says
+    their cart was filled, with an empty cart behind it.
+    """
+
+    async def test_the_cart_event_precedes_the_final_sentence(
+        self, db: AsyncSession, customer: User, catalogue: None
+    ) -> None:
+        model = ScriptedChatModel(
+            [
+                tool_call_message("add_to_cart", {"name_or_slug": "curl gel", "quantity": 2}),
+                AIMessage(content="Added. Open the cart to pay."),
+            ]
+        )
+
+        events = [
+            event
+            async for event in chat_service.stream_reply(
+                db, user=customer, message="order the gel", model=model
+            )
+        ]
+
+        kinds = [type(event).__name__ for event in events]
+        assert "CartUpdate" in kinds, kinds
+        # The load-bearing assertion: at least one word of the reply still follows it, so a client
+        # that stopped reading after the last token would already have the cart.
+        assert kinds.index("CartUpdate") < len(kinds) - 1, kinds
+
+    async def test_a_truncated_stream_still_delivered_the_cart(
+        self, db: AsyncSession, customer: User, catalogue: None
+    ) -> None:
+        """Simulates the customer's connection dropping mid-sentence: stop consuming after the
+        first two events and check the proposal was already among them."""
+        model = ScriptedChatModel(
+            [
+                tool_call_message("add_to_cart", {"name_or_slug": "curl gel", "quantity": 1}),
+                AIMessage(content="Added one. Open the cart to pay."),
+            ]
+        )
+
+        seen = []
+        async for event in chat_service.stream_reply(
+            db, user=customer, message="order the gel", model=model
+        ):
+            seen.append(event)
+            if len(seen) == 2:
+                break
+
+        assert any(isinstance(event, chat_service.CartUpdate) for event in seen)
+
+    async def test_each_event_carries_the_whole_draft_not_a_delta(
+        self, db: AsyncSession, customer: User, catalogue: None
+    ) -> None:
+        """Cumulative payloads are what make an early send safe: the client keys on product id and
+        replaces, so a repeated event cannot double the cart."""
+        model = ScriptedChatModel(
+            [
+                tool_call_message("add_to_cart", {"name_or_slug": "curl gel", "quantity": 2}),
+                tool_call_message("add_to_cart", {"name_or_slug": "argan-hair-oil"}),
+                AIMessage(content="Both are in your cart."),
+            ]
+        )
+
+        updates = [
+            event
+            async for event in chat_service.stream_reply(
+                db, user=customer, message="add the gel and the oil", model=model
+            )
+            if isinstance(event, chat_service.CartUpdate)
+        ]
+
+        assert updates, "no cart update was emitted"
+        # Whatever the last one is, it is the complete set — never just the most recent line.
+        final = {line.slug: line.quantity for line in updates[-1].proposals}
+        assert final == {"curl-defining-gel": 2, "argan-hair-oil": 1}

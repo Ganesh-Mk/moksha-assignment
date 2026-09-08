@@ -72,7 +72,7 @@ export function ChatWidget({ onOpenCart }: { onOpenCart: () => void }) {
         className={cn(
           "fixed bottom-4 right-4 z-40 flex size-11 items-center justify-center rounded-full",
           "bg-accent text-accent-ink shadow-overlay",
-          "transition-transform duration-[--dur-base] ease-spring",
+          "transition-transform duration-(--dur-base) ease-spring",
           "hover:scale-105 active:scale-95",
         )}
         aria-expanded={open}
@@ -123,7 +123,7 @@ export function ChatWidget({ onOpenCart }: { onOpenCart: () => void }) {
                       onClick={() => submit(suggestion)}
                       className={cn(
                         "rounded-md border border-line bg-surface-sunken px-2.5 py-1.5 text-left",
-                        "text-xs text-ink-muted transition-colors duration-[--dur-fast]",
+                        "text-xs text-ink-muted transition-colors duration-(--dur-fast)",
                         "hover:border-line-strong hover:text-ink",
                       )}
                     >

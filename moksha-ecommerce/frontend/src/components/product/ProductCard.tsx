@@ -44,7 +44,7 @@ export function ProductCard({ product }: { product: Product }) {
     <article
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-lg border border-line bg-surface",
-        "transition-[border-color,box-shadow] duration-[--dur-base] ease-out",
+        "transition-[border-color,box-shadow] duration-(--dur-base) ease-out",
         "hover:border-line-strong hover:shadow-raised",
         "focus-within:border-accent",
       )}
@@ -69,8 +69,11 @@ export function ProductCard({ product }: { product: Product }) {
             loading="lazy"
             decoding="async"
             className={cn(
-              "size-full object-contain",
-              "transition-transform duration-[--dur-slow] ease-out group-hover:scale-[1.04]",
+              // `transform-gpu` promotes the image to its own compositor layer, so the
+              // hover scale is a composite rather than a re-raster of a 768px bitmap
+              // every frame. Without it a large photograph visibly shimmers as it grows.
+              "size-full transform-gpu object-contain",
+              "transition-transform duration-(--dur-slow) ease-out group-hover:scale-[1.03]",
               soldOut && "opacity-55 grayscale",
             )}
           />
@@ -81,11 +84,11 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         {soldOut ? (
-          <span className="absolute left-2.5 top-2.5 rounded-full bg-surface/95 px-2 py-0.5 text-2xs font-semibold uppercase tracking-[--tracking-label] text-ink-muted">
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-surface/95 px-2 py-0.5 text-2xs font-semibold uppercase tracking-(--tracking-label) text-ink-muted">
             Sold out
           </span>
         ) : product.stock <= 5 ? (
-          <span className="absolute left-2.5 top-2.5 rounded-full bg-warning-soft px-2 py-0.5 text-2xs font-semibold uppercase tracking-[--tracking-label] text-warning-soft-ink">
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-warning-soft px-2 py-0.5 text-2xs font-semibold uppercase tracking-(--tracking-label) text-warning-soft-ink">
             Only {product.stock} left
           </span>
         ) : null}
@@ -120,7 +123,7 @@ export function ProductCard({ product }: { product: Product }) {
               // z-10 lifts it above the link overlay; without it the card link
               // swallows the click and the button silently does nothing.
               "relative z-10 flex size-7 items-center justify-center rounded-md border",
-              "transition-[background-color,border-color,color] duration-[--dur-fast]",
+              "transition-[background-color,border-color,color] duration-(--dur-fast)",
               justAdded
                 ? "border-accent bg-accent text-accent-ink"
                 : "border-line-strong bg-surface text-ink-muted hover:border-accent hover:bg-accent hover:text-accent-ink",

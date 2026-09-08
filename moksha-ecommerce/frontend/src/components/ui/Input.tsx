@@ -67,7 +67,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           className={cn(
             "h-9 w-full rounded-md border bg-surface px-2.5 text-sm text-ink",
             "placeholder:text-ink-subtle",
-            "transition-[border-color,box-shadow] duration-[--dur-fast] ease-out",
+            "transition-[border-color,box-shadow] duration-(--dur-fast) ease-out",
             "focus:outline-none focus-visible:outline-none",
             "focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-ring)]",
             "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-subtle",

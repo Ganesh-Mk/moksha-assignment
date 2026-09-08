@@ -30,7 +30,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         className={cn(
           "min-h-20 w-full resize-y rounded-md border bg-surface px-2.5 py-2 text-sm text-ink",
           "placeholder:text-ink-subtle",
-          "transition-[border-color,box-shadow] duration-[--dur-fast] ease-out",
+          "transition-[border-color,box-shadow] duration-(--dur-fast) ease-out",
           "focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-ring)] focus:outline-none",
           error ? "border-danger" : "border-line-strong",
           className,

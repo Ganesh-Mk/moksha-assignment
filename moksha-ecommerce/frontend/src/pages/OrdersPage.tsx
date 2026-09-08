@@ -63,7 +63,7 @@ export function OrdersPage() {
             <li key={order.id}>
               <Card
                 className={cn(
-                  "transition-[border-color,box-shadow] duration-[--dur-fast]",
+                  "transition-[border-color,box-shadow] duration-(--dur-fast)",
                   "hover:border-line-strong hover:shadow-raised",
                 )}
               >

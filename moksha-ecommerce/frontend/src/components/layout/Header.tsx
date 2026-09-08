@@ -57,7 +57,7 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
           aria-label="Moksha — home"
         >
           <span className="font-display text-lg leading-none text-ink">Moksha</span>
-          <span className="hidden text-2xs uppercase tracking-[--tracking-label] text-ink-subtle sm:inline">
+          <span className="hidden text-2xs uppercase tracking-(--tracking-label) text-ink-subtle sm:inline">
             Haircare
           </span>
         </Link>
@@ -69,7 +69,7 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
               to={link.to}
               className={({ isActive }) =>
                 cn(
-                  "rounded-md px-2.5 py-1.5 text-sm transition-colors duration-[--dur-fast]",
+                  "rounded-md px-2.5 py-1.5 text-sm transition-colors duration-(--dur-fast)",
                   isActive
                     ? "bg-surface-sunken font-medium text-ink"
                     : "text-ink-muted hover:bg-surface-hover hover:text-ink",
@@ -88,7 +88,7 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
             onClick={onOpenCart}
             className={cn(
               "relative flex h-9 items-center gap-2 rounded-md border border-line-strong px-2.5",
-              "text-sm text-ink transition-colors duration-[--dur-fast] hover:bg-surface-hover",
+              "text-sm text-ink transition-colors duration-(--dur-fast) hover:bg-surface-hover",
             )}
           >
             <ShoppingBag className="size-4" aria-hidden />
@@ -120,7 +120,7 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
                   className={cn(
                     "flex size-9 items-center justify-center overflow-hidden rounded-full",
                     "border border-line-strong bg-surface-sunken text-xs font-semibold text-ink-muted",
-                    "transition-colors duration-[--dur-fast] hover:border-ink-subtle",
+                    "transition-colors duration-(--dur-fast) hover:border-ink-subtle",
                   )}
                   aria-label={`Account menu for ${user.name}`}
                 >
@@ -152,7 +152,7 @@ export function Header({ onOpenCart }: { onOpenCart: () => void }) {
                     <p className="truncate text-sm font-medium text-ink">{user.name}</p>
                     <p className="truncate text-xs text-ink-muted">{user.email}</p>
                     {isAdmin ? (
-                      <p className="mt-1 text-2xs font-semibold uppercase tracking-[--tracking-label] text-accent">
+                      <p className="mt-1 text-2xs font-semibold uppercase tracking-(--tracking-label) text-accent">
                         Administrator
                       </p>
                     ) : null}

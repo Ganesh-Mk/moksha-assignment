@@ -43,11 +43,17 @@ class TextDelta:
 
 @dataclass(frozen=True)
 class CartUpdate:
-    """Cart lines the agent proposed during this turn, emitted once at the end.
+    """Every line the agent has proposed so far this turn.
 
-    At the end rather than as they happen, deliberately: the agent may add two products across
-    two tool calls, and the client should apply one coherent set rather than watch its cart
-    grow mid-sentence.
+    **Cumulative, and sent as soon as the set changes.** Each event carries the whole draft rather
+    than the delta, so applying it is idempotent — the client keys on product id and replaces.
+    That is what lets it be sent early *and* repeatedly without the cart double-counting.
+
+    Sent early on purpose. The proposal is a fact the moment the tool returns; holding it until the
+    model has finished composing its sentence means a stream cut off in between — a network blip, a
+    proxy timeout, the customer sending another message — loses work the server has already done
+    and validated. The customer is then told their cart was filled by a reply that arrived, while
+    the event that would have filled it did not.
     """
 
     proposals: list[CartProposal]
@@ -171,12 +177,21 @@ async def stream_reply(
     graph, state, cart = _prepare(session, user=user, message=message, history=history, model=model)
 
     emitted = False
+    sent_cart_version = 0
+
     async for chunk, _meta in graph.astream(
         state,
         # "messages" mode yields token-by-token as the model produces them, rather than one
         # payload per completed node — which would defeat the point of streaming.
         stream_mode="messages",
     ):
+        # Checked on every chunk rather than at the end: the tool has already run and the draft is
+        # already true, so the sooner the browser has it the smaller the window in which a dropped
+        # connection loses it. Cheap — an integer comparison per token.
+        if cart.version != sent_cart_version:
+            sent_cart_version = cart.version
+            yield CartUpdate(cart.proposals)
+
         if isinstance(chunk, AIMessageChunk) and chunk.content:
             piece = chunk.content if isinstance(chunk.content, str) else _text_of(chunk.content)
             if piece:
@@ -188,7 +203,9 @@ async def stream_reply(
         # and leave an empty bubble on screen.
         yield TextDelta("I could not find an answer to that. Could you rephrase it?")
 
-    if cart:
+    # A last one if the final tool call landed after the model's last token — and a backstop for
+    # the case where the graph produced no chunks at all after the tool ran.
+    if cart.version != sent_cart_version:
         yield CartUpdate(cart.proposals)
 
     logger.info("chat_completed", extra={"user_id": user.id, "cart_lines": len(cart.proposals)})

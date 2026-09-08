@@ -64,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       className={cn(
         "inline-flex select-none items-center border font-medium",
         "transition-[background-color,border-color,color,box-shadow,transform]",
-        "duration-[--dur-fast] ease-out",
+        "duration-(--dur-fast) ease-out",
         // A 1px press. Enough to feel like a physical control, small enough
         // that nobody consciously notices it.
         "active:translate-y-px",

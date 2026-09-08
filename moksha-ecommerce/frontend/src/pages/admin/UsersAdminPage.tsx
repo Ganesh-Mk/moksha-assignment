@@ -112,7 +112,7 @@ export function AdminUsersPage() {
                     <tr
                       key={user.id}
                       className={cn(
-                        "transition-colors duration-[--dur-fast] hover:bg-surface-hover",
+                        "transition-colors duration-(--dur-fast) hover:bg-surface-hover",
                         !user.is_active && "opacity-60",
                       )}
                     >
