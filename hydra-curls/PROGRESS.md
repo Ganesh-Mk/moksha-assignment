@@ -23,6 +23,28 @@ CLS at 0 every single time — and the top of the process list during the low ru
 sessions, two VS Code windows and a browser. Trust LCP and CLS; treat a single mobile score as
 noise unless the machine is idle.
 
+## Sixth review round — the showcase band
+
+Deepening the purple band and lifting the script arc, which turned out to be coupled.
+
+**The white arc band was painting over the disc.** It carried `bg-page` plus a negative top
+margin, so it slid an opaque white rectangle up across the bottom of the purple. The visible
+symptom was the thumbnails appearing to hang off the disc's edge — they were not moving at all;
+the disc _behind_ them was being covered. I chased the wrong thing first, adding padding to
+"clear the curve" before checking what was actually painting.
+
+The band now carries no background of its own (the section already provides the page colour) and
+the lift happens on the text instead, which is safe because CurvedText renders `overflow-visible`
+and the glyphs at the ends of a sagging arc already sit above the SVG's own box.
+
+The band is also genuinely deeper — more of the bottom-anchored disc shows — without touching the
+circle's 107% geometry, which is Figma's 2052px against a 1920 frame.
+
+**Verified by sampling pixels, not by eye:** all five thumbnails sit on purple at 1024/1440/1920.
+That check is what caught the overlay; the code comment records the geometry so the padding is not
+"tuned" back down later — the outermost thumbnail sits ~244px off the page axis, where a 770px
+circle has already risen 40px, and the solid disc is itself raised 4.44% off the wrapper floor.
+
 ## Fifth review round
 
 Spacing and shape, mostly measured rather than eyeballed:

@@ -117,7 +117,7 @@ export function ProductShowcase() {
         </div>
 
         <div
-          className="relative z-10 px-5 pt-6 pb-[1%] md:pt-10"
+          className="relative z-10 px-5 pt-12 pb-[10.5%] md:pt-20"
           onPointerEnter={() => setEngaged(true)}
           onPointerLeave={() => setEngaged(false)}
           onFocusCapture={() => setEngaged(true)}
@@ -201,7 +201,13 @@ export function ProductShowcase() {
             {activeProduct?.name}
           </p>
 
-          {/* Thumbnail selectors. Real buttons, so the range is reachable without dragging. */}
+          {/* Thumbnail selectors. Real buttons, so the range is reachable without dragging.
+
+              The band's bottom padding has to clear the *curve*, not the disc's lowest point:
+              the outermost thumbnail sits ~244px off the page axis, where a 770px-radius circle
+              has already risen 40px, and the solid disc is itself raised 4.44% off the wrapper
+              floor. Too little padding and the outer thumbnails hang off the purple onto the
+              page — which is exactly what they did. */}
           <ul className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-4 md:mt-6">
             {products.map((product, index) => (
               <li key={product.name}>
@@ -230,11 +236,16 @@ export function ProductShowcase() {
           field carries on beneath the purple circle and hands over to white along a curve, with
           the arc crossing that boundary. Rendering the text on flat white lost the shape
           entirely and left the line floating in a gap, which is what it looked like. */}
-      {/* The band is pulled up over the disc rather than starting beneath it. CurvedText renders
-          `overflow-visible`, so the glyphs at the ends of the arc already sit well above the
-          SVG's own box — the negative margin uses that overhang to tuck the line right under the
-          rim, which is where the reference has it. */}
-      <div className="bg-page relative -mt-[1.5%] pt-0">
+      {/* The band carries no background of its own — the section already provides the page
+          colour. It used to be `bg-page` with a negative margin, which pulled an opaque white
+          rectangle up over the disc and cut the bottom off the purple; the thumbnails then
+          looked like they were hanging off the edge, when in fact the disc behind them was
+          being painted over.
+
+          The lift now happens on the text instead, which is safe because CurvedText renders
+          `overflow-visible` and the glyphs at the ends of a sagging arc already sit well above
+          the SVG's own box. */}
+      <div className="relative pt-0">
         <SoftWave
           fillClassName="fill-brand-cyan-soft"
           className="absolute inset-x-0 bottom-0 h-[clamp(3rem,8vw,9rem)]"
@@ -250,7 +261,7 @@ export function ProductShowcase() {
           chord={1400}
           sag={240}
           fontSize={72}
-          className="pointer-events-none relative z-10 mx-auto w-[86%] max-w-[98.25rem] pb-[3%] text-black/45"
+          className="pointer-events-none relative z-10 mx-auto -mt-[8.5%] w-[86%] max-w-[98.25rem] pb-[3%] text-black/45"
         >
           {curvedArcText}
         </CurvedText>
