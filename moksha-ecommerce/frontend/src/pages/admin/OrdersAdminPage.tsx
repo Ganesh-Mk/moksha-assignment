@@ -1,6 +1,7 @@
 import { Package } from "lucide-react";
 import { useState } from "react";
 
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Container } from "@/components/layout/Container";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -39,11 +40,7 @@ export function AdminOrdersPage() {
 
   return (
     <Container className="py-8">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-caps">Administration</p>
-          <h1 className="mt-1 font-display text-2xl text-ink">Orders</h1>
-        </div>
+      <AdminPageHeader title="Orders">
         <Select
           label="Filter by status"
           hideLabel
@@ -52,7 +49,7 @@ export function AdminOrdersPage() {
           options={STATUS_OPTIONS}
           className="w-48"
         />
-      </header>
+      </AdminPageHeader>
 
       {data === undefined ? (
         <Skeleton className="h-64 w-full" />

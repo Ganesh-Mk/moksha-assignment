@@ -26,6 +26,9 @@ const AdminDashboardPage = lazy(() =>
 const AdminProductsPage = lazy(() =>
   import("@/pages/admin/ProductsAdminPage").then((m) => ({ default: m.AdminProductsPage })),
 );
+const AdminUsersPage = lazy(() =>
+  import("@/pages/admin/UsersAdminPage").then((m) => ({ default: m.AdminUsersPage })),
+);
 const AdminOrdersPage = lazy(() =>
   import("@/pages/admin/OrdersAdminPage").then((m) => ({ default: m.AdminOrdersPage })),
 );
@@ -131,6 +134,14 @@ export function App() {
               element={
                 <RequireAdmin>
                   <AdminProductsPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <RequireAdmin>
+                  <AdminUsersPage />
                 </RequireAdmin>
               }
             />

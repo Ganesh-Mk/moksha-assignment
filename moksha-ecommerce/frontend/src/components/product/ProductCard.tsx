@@ -49,18 +49,27 @@ export function ProductCard({ product }: { product: Product }) {
         "focus-within:border-accent",
       )}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-surface-sunken">
+      {/* Square, padded, and `object-contain`.
+
+          The frame used to be 4:5 with `object-cover`, which cropped a tall
+          bottle to fill the box: the product ran edge to edge and touched its
+          neighbours, and the top and bottom of the bottle were simply gone.
+          `contain` inside a padded square shows the whole product with air
+          around it, which is how a shop photographs one. The frame is still a
+          fixed ratio, so the grid reserves its space before the image decodes
+          and nothing reflows. */}
+      <div className="relative aspect-square overflow-hidden bg-surface-sunken p-4 sm:p-5">
         {product.image_url ? (
           <img
             ref={image}
             src={product.image_url}
             alt={product.name}
             width={400}
-            height={500}
+            height={400}
             loading="lazy"
             decoding="async"
             className={cn(
-              "size-full object-cover",
+              "size-full object-contain",
               "transition-transform duration-[--dur-slow] ease-out group-hover:scale-[1.04]",
               soldOut && "opacity-55 grayscale",
             )}
@@ -72,11 +81,11 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         {soldOut ? (
-          <span className="absolute left-2 top-2 rounded-full bg-surface/95 px-2 py-0.5 text-2xs font-semibold uppercase tracking-[--tracking-label] text-ink-muted">
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-surface/95 px-2 py-0.5 text-2xs font-semibold uppercase tracking-[--tracking-label] text-ink-muted">
             Sold out
           </span>
         ) : product.stock <= 5 ? (
-          <span className="absolute left-2 top-2 rounded-full bg-warning-soft px-2 py-0.5 text-2xs font-semibold uppercase tracking-[--tracking-label] text-warning-soft-ink">
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-warning-soft px-2 py-0.5 text-2xs font-semibold uppercase tracking-[--tracking-label] text-warning-soft-ink">
             Only {product.stock} left
           </span>
         ) : null}

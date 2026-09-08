@@ -128,10 +128,31 @@ export function useActivitySeries(days: number) {
   });
 }
 
-export function useAdminUsers() {
+export function useAdminUsers(limit = 50) {
   return useQuery({
-    queryKey: [...orderKeys.stats(), "users"],
-    queryFn: () => request<Page<UserSummary>>("/admin/users?limit=50"),
+    queryKey: [...orderKeys.stats(), "users", limit],
+    queryFn: () => request<Page<UserSummary>>(`/admin/users?limit=${limit}`),
     staleTime: 30_000,
+  });
+}
+
+/**
+ * Disable an account, or restore one.
+ *
+ * Two verbs on the wire because they mean different things to a cache and to an audit log, one
+ * hook because the screen offers them as one toggle. Both invalidate the whole stats key, since
+ * a disabled admin changes the user table and nothing else on the dashboard.
+ */
+export function useSetUserActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      isActive
+        ? request<UserSummary>(`/admin/users/${id}`, {
+            method: "PATCH",
+            body: { is_active: true },
+          })
+        : request<UserSummary>(`/admin/users/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderKeys.stats() }),
   });
 }

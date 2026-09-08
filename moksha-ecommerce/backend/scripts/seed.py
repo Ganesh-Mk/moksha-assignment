@@ -272,7 +272,11 @@ USERS: tuple[SeedUser, ...] = (
 
 async def seed_products(session: AsyncSession, *, reset_stock: bool) -> tuple[int, int]:
     created = updated = 0
-    for spec in PRODUCTS:
+    for position, spec in enumerate(PRODUCTS):
+        # Position in the tuple *is* the merchandising order, so the file reads top to bottom in
+        # the order the shop displays. Stepped by ten so a product can be slotted between two
+        # without renumbering the rest.
+        display_order = position * 10
         existing = (
             await session.execute(select(Product).where(Product.slug == spec.slug))
         ).scalar_one_or_none()
@@ -287,6 +291,7 @@ async def seed_products(session: AsyncSession, *, reset_stock: bool) -> tuple[in
                     stock=spec.stock,
                     description=spec.description,
                     image_url=spec.image_url,
+                    display_order=display_order,
                     currency="INR",
                     is_active=spec.slug != "silk-press-serum",
                 )
@@ -299,6 +304,7 @@ async def seed_products(session: AsyncSession, *, reset_stock: bool) -> tuple[in
         existing.price_cents = spec.price_cents
         existing.description = spec.description
         existing.image_url = spec.image_url
+        existing.display_order = display_order
         # Stock is left alone by default: re-running the seed after a demo must not silently
         # restock items the demo just sold, or the oversell demonstration stops working.
         if reset_stock:

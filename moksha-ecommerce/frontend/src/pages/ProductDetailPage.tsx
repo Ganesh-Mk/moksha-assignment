@@ -77,7 +77,9 @@ export function ProductDetailPage() {
       </Link>
 
       <div className="grid gap-6 md:grid-cols-2 md:gap-10">
-        <div className="overflow-hidden rounded-lg border border-line bg-surface-sunken">
+        {/* Padded and `object-contain`, for the same reason as the grid card:
+            the hero was cropping the top and bottom off a tall bottle. */}
+        <div className="overflow-hidden rounded-lg border border-line bg-surface-sunken p-6 sm:p-10">
           {product.image_url ? (
             <img
               ref={image}
@@ -91,7 +93,7 @@ export function ProductDetailPage() {
               loading="eager"
               fetchPriority="high"
               decoding="async"
-              className="aspect-square w-full object-cover"
+              className="aspect-square w-full object-contain"
             />
           ) : (
             <div className="flex aspect-square items-center justify-center text-sm text-ink-subtle">

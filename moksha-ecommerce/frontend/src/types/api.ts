@@ -137,6 +137,7 @@ export interface UserSummary {
   name: string;
   picture_url: string | null;
   role: UserRole;
+  is_active: boolean;
   created_at: string;
   order_count: number;
   paid_order_count: number;

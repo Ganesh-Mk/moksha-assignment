@@ -13,6 +13,8 @@ from sqlalchemy import ColumnElement, case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
+from app.core.exceptions import ConflictError, NotFoundError
+from app.core.logging import get_logger
 from app.models import Order, OrderStatus, Product, User, UserRole
 from app.schemas.stats import (
     DashboardStats,
@@ -25,6 +27,8 @@ from app.schemas.stats import (
 
 # Below this, an admin should be reordering. Deliberately a constant rather than a setting: it is
 # a merchandising judgement, and a knob nobody turns is just another thing to document.
+logger = get_logger(__name__)
+
 LOW_STOCK_THRESHOLD = 10
 
 # Only these two states represent money actually taken.
@@ -187,7 +191,12 @@ async def _running_total(
 
 
 async def list_users(
-    session: AsyncSession, *, role: UserRole | None = None, limit: int, offset: int
+    session: AsyncSession,
+    *,
+    role: UserRole | None = None,
+    only_user_id: int | None = None,
+    limit: int,
+    offset: int,
 ) -> tuple[list[UserSummary], int]:
     """Every user with their purchase history folded in, biggest spender first.
 
@@ -198,7 +207,13 @@ async def list_users(
     `dashboard_stats` uses for revenue. Two figures on one screen that disagree about what a sale
     is are worse than one figure.
     """
-    conditions = [User.role == role] if role is not None else []
+    conditions = []
+    if role is not None:
+        conditions.append(User.role == role)
+    if only_user_id is not None:
+        # Re-reading one row through the same aggregate is what keeps the response after a
+        # deactivate identical in shape to a row in the table it came from.
+        conditions.append(User.id == only_user_id)
 
     total = await session.scalar(select(func.count()).select_from(User).where(*conditions))
 
@@ -233,6 +248,7 @@ async def list_users(
             name=user.name,
             picture_url=user.picture_url,
             role=user.role,
+            is_active=user.is_active,
             created_at=user.created_at,
             order_count=int(order_count),
             paid_order_count=int(paid_order_count),
@@ -241,3 +257,54 @@ async def list_users(
         )
         for user, order_count, paid_order_count, total_spent_cents, last_order_at in rows
     ], int(total or 0)
+
+
+async def set_user_active(
+    session: AsyncSession, user_id: int, *, is_active: bool, actor: User
+) -> UserSummary:
+    """Disable or restore an account.
+
+    **A soft delete, exactly like a withdrawn product.** A hard `DELETE` would either orphan the
+    customer's orders or cascade them away, and an order has to survive as a financial record
+    whatever happens to the account — the `orders.user_id` foreign key is what makes "who bought
+    this" answerable a year later. Disabling is what "delete" means here, and the user model has
+    said so since Phase 1.
+
+    Two guards, both about not locking everyone out of the admin console:
+
+    * an admin cannot disable **themselves** — the single most likely misclick on this screen;
+    * the **last active admin** cannot be disabled, or there is nobody left who can undo it.
+
+    Restoring is the same call with `is_active=True`, so the action is reversible from the same
+    screen. That is the difference between a soft delete and a mistake.
+    """
+    user = (await session.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if user is None:
+        raise NotFoundError("User not found.")
+
+    if not is_active:
+        if user.id == actor.id:
+            raise ConflictError("You cannot disable your own account.")
+
+        if user.role is UserRole.ADMIN:
+            remaining = await session.scalar(
+                select(func.count())
+                .select_from(User)
+                .where(User.role == UserRole.ADMIN, User.is_active.is_(True), User.id != user.id)
+            )
+            if not remaining:
+                raise ConflictError(
+                    "This is the last active admin. Promote someone else before disabling it."
+                )
+
+    user.is_active = is_active
+    await session.commit()
+    await session.refresh(user)
+
+    logger.info(
+        "user_active_changed",
+        extra={"actor_id": actor.id, "user_id": user.id, "is_active": is_active},
+    )
+
+    summary, _ = await list_users(session, limit=1, offset=0, only_user_id=user.id)
+    return summary[0]

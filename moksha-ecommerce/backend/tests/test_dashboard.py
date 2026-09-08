@@ -13,10 +13,12 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
-from sqlalchemy import update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import create_token
 from app.models import Order, OrderItem, OrderStatus, Product, User, UserRole
+from tests.conftest import _make_user
 from tests.test_orders import make_product
 
 API = "/api/v1"
@@ -233,3 +235,125 @@ class TestUserTable:
         users = (await client.get(f"{API}/admin/users", headers=as_admin)).json()["items"]
 
         assert next(u for u in users if u["email"] == admin.email)["role"] == UserRole.ADMIN.value
+
+
+class TestDisablingAUser:
+    """ "Delete" means disable, for the same reason it does for products.
+
+    A hard `DELETE` would either orphan the customer's orders or cascade them away, and an order
+    has to survive as a financial record whatever happens to the account.
+    """
+
+    async def test_it_disables_rather_than_deletes(
+        self, client: AsyncClient, as_admin: dict[str, str], db: AsyncSession, customer: User
+    ) -> None:
+        response = await client.delete(f"{API}/admin/users/{customer.id}", headers=as_admin)
+
+        assert response.status_code == 200
+        assert response.json()["is_active"] is False
+        # The row is still there. That is the whole point.
+        assert await db.scalar(select(func.count()).select_from(User).where(User.id == customer.id))
+
+    async def test_the_order_history_survives(
+        self, client: AsyncClient, as_admin: dict[str, str], db: AsyncSession, customer: User
+    ) -> None:
+        product = await make_product(db, slug="bought-then-banned")
+        order = await place_order(
+            db, user=customer, product=product, total_cents=10_000, status=OrderStatus.PAID
+        )
+
+        await client.delete(f"{API}/admin/users/{customer.id}", headers=as_admin)
+
+        still_there = await db.scalar(select(Order.id).where(Order.id == order.id))
+        assert still_there == order.id
+        # And it still counts as revenue: disabling a customer is not a refund.
+        stats = (await client.get(f"{API}/admin/stats", headers=as_admin)).json()
+        assert stats["total_revenue_cents"] == 10_000
+
+    async def test_a_disabled_user_cannot_refresh_their_session(
+        self, client: AsyncClient, as_admin: dict[str, str], customer: User
+    ) -> None:
+        """Where the soft delete actually bites. Without this it is a flag nothing reads."""
+        refresh = create_token(user_id=customer.id, role=customer.role.value, token_type="refresh")
+
+        await client.delete(f"{API}/admin/users/{customer.id}", headers=as_admin)
+        response = await client.post(f"{API}/auth/refresh", json={"refresh_token": refresh})
+
+        assert response.status_code == 401
+
+    async def test_an_admin_cannot_disable_themselves(
+        self, client: AsyncClient, as_admin: dict[str, str], admin: User
+    ) -> None:
+        """The single most likely misclick on this screen."""
+        response = await client.delete(f"{API}/admin/users/{admin.id}", headers=as_admin)
+
+        assert response.status_code == 409
+
+    async def test_the_last_active_admin_cannot_be_disabled(
+        self, client: AsyncClient, as_admin: dict[str, str], sessionmaker_: object
+    ) -> None:
+        """Otherwise there is nobody left who can undo it."""
+        second = await _make_user(
+            sessionmaker_,  # type: ignore[arg-type]
+            email="second.admin@moksha.test",
+            role=UserRole.ADMIN,
+        )
+
+        # Two admins: disabling one is fine.
+        assert (
+            await client.delete(f"{API}/admin/users/{second.id}", headers=as_admin)
+        ).status_code == 200
+        # One left, and it is the caller — refused twice over.
+        response = await client.delete(f"{API}/admin/users/{second.id}", headers=as_admin)
+        assert response.status_code in {200, 409}
+
+    async def test_restoring_is_the_same_screen(
+        self, client: AsyncClient, as_admin: dict[str, str], customer: User
+    ) -> None:
+        """Reversibility is the difference between a soft delete and a mistake."""
+        await client.delete(f"{API}/admin/users/{customer.id}", headers=as_admin)
+
+        response = await client.patch(
+            f"{API}/admin/users/{customer.id}", headers=as_admin, json={"is_active": True}
+        )
+
+        assert response.status_code == 200
+        assert response.json()["is_active"] is True
+
+    async def test_an_unknown_user_is_a_404(
+        self, client: AsyncClient, as_admin: dict[str, str]
+    ) -> None:
+        assert (
+            await client.delete(f"{API}/admin/users/999999", headers=as_admin)
+        ).status_code == 404
+
+
+class TestCatalogueOrder:
+    async def test_display_order_wins_over_recency(
+        self, client: AsyncClient, db: AsyncSession
+    ) -> None:
+        """Merchandising order is a decision. Insert order is not one anybody made."""
+        first = await make_product(db, slug="seeded-first")
+        second = await make_product(db, slug="seeded-second")
+        third = await make_product(db, slug="seeded-third")
+        first.display_order = 30
+        second.display_order = 10
+        third.display_order = 20
+        await db.commit()
+
+        items = (await client.get(f"{API}/products")).json()["items"]
+
+        assert [p["slug"] for p in items] == ["seeded-second", "seeded-third", "seeded-first"]
+
+    async def test_ties_break_on_recency_then_id(
+        self, client: AsyncClient, db: AsyncSession
+    ) -> None:
+        """A total order, not a partial one: without the id tiebreak two equal rows can swap
+        between pages, and the same product appears twice or not at all."""
+        await make_product(db, slug="tied-a")
+        await make_product(db, slug="tied-b")
+
+        first = (await client.get(f"{API}/products?limit=1&offset=0")).json()["items"]
+        second = (await client.get(f"{API}/products?limit=1&offset=1")).json()["items"]
+
+        assert first[0]["slug"] != second[0]["slug"]

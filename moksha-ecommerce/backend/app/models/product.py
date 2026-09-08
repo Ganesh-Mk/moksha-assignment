@@ -29,6 +29,17 @@ class Product(Base, TimestampMixin):
 
     stock: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
+    # Merchandising order: lower sorts first, ties broken by recency.
+    #
+    # Without it the shop is ordered by insert date, which is not a decision anyone made — the
+    # catalogue reshuffles whenever a row is re-inserted, and the products a shop most wants to
+    # sell end up wherever the seed happened to put them. A column rather than a hard-coded list
+    # in the service, because "what comes first" is a business decision an admin should be able
+    # to change without a deploy.
+    display_order: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=100, server_default="100"
+    )
+
     # Soft delete. A hard DELETE would break the FK from `order_items`, and order history must
     # outlive the catalogue — an admin removing a product cannot erase what someone bought.
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
@@ -41,6 +52,8 @@ class Product(Base, TimestampMixin):
         # Covers the default listing: active products filtered by category. Without it, the
         # catalogue page is a sequential scan that gets slower as the catalogue grows.
         Index("ix_products_active_category", "is_active", "category"),
+        # Covers the default sort, so the listing does not need a separate sort step.
+        Index("ix_products_display_order", "display_order", "created_at"),
     )
 
     def __repr__(self) -> str:

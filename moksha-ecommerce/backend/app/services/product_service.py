@@ -99,7 +99,14 @@ async def list_products(
 
     # Newest first, tie-broken by id: without the tie-break, two products created in the same
     # transaction have an undefined order and can appear on two different pages, or on neither.
-    stmt = stmt.order_by(Product.created_at.desc(), Product.id.desc()).limit(limit).offset(offset)
+    # Merchandising order first, then newest. The id tiebreak is not decoration: without a
+    # total order, two rows with equal keys can swap between pages and the same product appears
+    # twice, or not at all.
+    stmt = (
+        stmt.order_by(Product.display_order, Product.created_at.desc(), Product.id.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     products = list((await session.execute(stmt)).scalars().all())
 
     return products, int(total or 0)

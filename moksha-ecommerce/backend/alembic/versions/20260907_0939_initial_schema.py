@@ -23,7 +23,7 @@ def upgrade() -> None:
     # SQLAlchemy creates these ENUM types implicitly as a side effect of CREATE TABLE, but never
     # drops them. Creating them explicitly here keeps upgrade and downgrade symmetric — see the
     # matching DROP TYPE calls below.
-    
+
     op.create_table(
         "products",
         sa.Column("id", sa.Integer(), nullable=False),

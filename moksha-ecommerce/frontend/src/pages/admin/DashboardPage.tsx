@@ -3,8 +3,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { ActivityChart } from "@/components/admin/ActivityChart";
-import { METRICS, type MetricKey } from "@/components/admin/metrics";
-import { CustomerTable } from "@/components/admin/CustomerTable";
+import {
+  METRICS,
+  selectedMetrics,
+  type MetricSelection,
+} from "@/components/admin/metrics";
 import { Container } from "@/components/layout/Container";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -20,6 +23,12 @@ const RANGES = [
   { days: 90, label: "90d" },
 ];
 
+// "All" first: it is the overview view, and an overview should open on it.
+const METRIC_OPTIONS = [
+  { value: "all" as const, label: "All" },
+  ...METRICS.map((metric) => ({ value: metric.key, label: metric.label })),
+];
+
 /**
  * Admin overview.
  *
@@ -30,18 +39,22 @@ const RANGES = [
  */
 export function AdminDashboardPage() {
   const { data } = useDashboardStats();
-  const [metricKey, setMetricKey] = useState<MetricKey>("revenue");
+  const [selection, setSelection] = useState<MetricSelection>("all");
   const [days, setDays] = useState(30);
   const { data: series, isFetching: seriesFetching } = useActivitySeries(days);
-  const { data: users } = useAdminUsers();
+  const { data: users } = useAdminUsers(6);
 
-  const metric = METRICS.find((m) => m.key === metricKey) ?? METRICS[0]!;
+  const shown = selectedMetrics(selection);
+  const headline = shown.length === 1 ? shown[0]! : null;
+  // A flow is summed over the window; a stock is read off the final day. Summing
+  // a running total would add today's customer count to yesterday's and call the
+  // result growth.
   const total =
-    series === undefined
+    series === undefined || headline === null
       ? null
-      : metric.kind === "flow"
-        ? series.points.reduce((sum, point) => sum + metric.value(point), 0)
-        : (metric.value(series.points.at(-1) ?? series.points[0]!) ?? 0);
+      : headline.kind === "flow"
+        ? series.points.reduce((sum, point) => sum + headline.value(point), 0)
+        : headline.value(series.points.at(-1) ?? series.points[0]!);
 
   // Narrowing on `data` rather than on `isPending`: TanStack's discriminated
   // union is lost once the result is destructured, so `isPending ? … : data.x`
@@ -84,28 +97,46 @@ export function AdminDashboardPage() {
       <Card className="mt-4">
         <CardBody className="p-0">
           <div className="flex flex-wrap items-end justify-between gap-3 p-4 pb-2">
-            <div>
-              <p className="label-caps">{metric.label}</p>
-              {total === null ? (
+            <div className="min-w-0">
+              <p className="label-caps">{headline ? headline.label : "Activity"}</p>
+              {series === undefined ? (
                 <Skeleton className="mt-1.5 h-7 w-28" />
-              ) : (
+              ) : headline && total !== null ? (
                 <p className="tnum mt-0.5 text-2xl font-semibold text-ink">
-                  {metric.format(total)}
+                  {headline.format(total)}
                 </p>
+              ) : (
+                // In the "All" view there is no single number to headline, so
+                // the legend takes its place. It has to be there anyway to say
+                // which colour is which.
+                <ul className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {METRICS.map((metric) => (
+                    <li key={metric.key} className="flex items-center gap-1.5">
+                      <span
+                        className="h-0.5 w-3 shrink-0 rounded-full"
+                        style={{ background: metric.color }}
+                        aria-hidden
+                      />
+                      <span className="text-xs text-ink-muted">{metric.label}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
-              <p className="mt-0.5 text-2xs text-ink-subtle">
-                {metric.kind === "flow"
-                  ? `Total over the last ${days} days`
-                  : "Running total, today"}
+              <p className="mt-1 text-2xs text-ink-subtle">
+                {headline
+                  ? headline.kind === "flow"
+                    ? `Total over the last ${days} days`
+                    : "Running total, today"
+                  : "Rupees on the left, counts on the right — not the same scale."}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
               <SegmentedControl
                 label="Metric"
-                options={METRICS.map((m) => ({ value: m.key, label: m.label }))}
-                value={metricKey}
-                onChange={setMetricKey}
+                options={METRIC_OPTIONS}
+                value={selection}
+                onChange={setSelection}
               />
               <SegmentedControl
                 label="Range"
@@ -122,7 +153,7 @@ export function AdminDashboardPage() {
             ) : (
               <ActivityChart
                 points={series.points}
-                metric={metric}
+                metrics={shown}
                 // Dimmed while a new range is in flight. The old line stays put
                 // rather than blanking, so switching ranges reads as the same
                 // chart changing rather than a new one arriving.
@@ -134,14 +165,6 @@ export function AdminDashboardPage() {
             )}
           </div>
         </CardBody>
-      </Card>
-
-      <Card className="mt-4">
-        <CardHeader
-          title="Customers"
-          description="Biggest spender first. Spend counts paid and fulfilled orders only, so it always agrees with the revenue figure above."
-        />
-        <CustomerTable users={users?.items} />
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -162,6 +185,45 @@ export function AdminDashboardPage() {
                     {ORDER_STATUS_LABEL[row.status as OrderStatus] ?? row.status}
                   </Badge>
                   <span className="tnum text-sm font-medium text-ink">{row.count}</span>
+                </div>
+              ))
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Top customers"
+            description="Biggest spender first. Spend counts paid and fulfilled orders only, so it always agrees with the revenue above."
+            action={
+              <Link
+                to="/admin/users"
+                className="text-xs text-accent underline-offset-4 hover:underline"
+              >
+                Manage users
+              </Link>
+            }
+          />
+          <CardBody className="flex flex-col gap-2">
+            {users === undefined ? (
+              <Skeleton className="h-20 w-full" />
+            ) : users.items.length === 0 ? (
+              <p className="text-xs text-ink-subtle">Nobody has signed up yet.</p>
+            ) : (
+              users.items.map((user) => (
+                <div key={user.id} className="flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-sm text-ink">{user.name}</span>
+                    {user.role === "admin" ? <Badge tone="accent">Admin</Badge> : null}
+                    {!user.is_active ? <Badge tone="neutral">Disabled</Badge> : null}
+                  </span>
+                  <span className="tnum shrink-0 text-sm font-medium text-ink">
+                    {user.total_spent_cents > 0 ? (
+                      formatMoney(user.total_spent_cents)
+                    ) : (
+                      <span className="text-ink-subtle">—</span>
+                    )}
+                  </span>
                 </div>
               ))
             )}

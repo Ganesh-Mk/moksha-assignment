@@ -1,6 +1,7 @@
 import { EyeOff, PackageSearch, Pencil, Plus, Search } from "lucide-react";
 import { useState } from "react";
 
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Container } from "@/components/layout/Container";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -48,13 +49,7 @@ export function AdminProductsPage() {
 
   return (
     <Container className="py-8">
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-caps">Administration</p>
-          <h1 className="mt-1 font-display text-2xl text-ink">Catalogue</h1>
-        </div>
-
-        <div className="flex items-end gap-2">
+      <AdminPageHeader title="Catalogue">
           <Input
             label="Search"
             hideLabel
@@ -72,8 +67,7 @@ export function AdminProductsPage() {
               </Button>
             }
           />
-        </div>
-      </header>
+      </AdminPageHeader>
 
       {data === undefined ? (
         <Skeleton className="h-64 w-full" />

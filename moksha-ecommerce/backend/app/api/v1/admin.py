@@ -20,7 +20,7 @@ from app.models import UserRole
 from app.schemas.common import Page
 from app.schemas.order import AdminOrderResponse, OrderStatusUpdate
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
-from app.schemas.stats import DashboardStats, TimeSeries, UserSummary
+from app.schemas.stats import DashboardStats, TimeSeries, UserActiveUpdate, UserSummary
 from app.services import order_service, product_service, stats_service
 from app.services.product_service import ProductFilters
 
@@ -235,3 +235,41 @@ async def admin_list_users(
 ) -> Page[UserSummary]:
     users, total = await stats_service.list_users(session, role=role, limit=limit, offset=offset)
     return Page(items=users, total=total, limit=limit, offset=offset)
+
+
+@router.delete(
+    "/users/{user_id}",
+    response_model=UserSummary,
+    summary="Disable a user account",
+    description=(
+        "**Admin only.** A **soft delete** — sets `is_active = false`, exactly as withdrawing a "
+        "product does. A hard delete would either orphan the customer's orders or cascade them "
+        "away, and an order has to survive as a financial record whatever happens to the "
+        "account.\n\n"
+        "A disabled user cannot sign in and cannot refresh an existing session, so a token "
+        "issued before the change stops working at its next refresh rather than lasting until "
+        "the heat death of the universe.\n\n"
+        "Two guards, both about not locking everyone out: an admin cannot disable themselves, "
+        "and the last active admin cannot be disabled. Either returns **409**. Restore with "
+        "`PATCH /admin/users/{user_id}`."
+    ),
+)
+async def disable_user(user_id: int, session: DbSession, admin: AdminUser) -> UserSummary:
+    return await stats_service.set_user_active(session, user_id, is_active=False, actor=admin)
+
+
+@router.patch(
+    "/users/{user_id}",
+    response_model=UserSummary,
+    summary="Restore a disabled user account",
+    description=(
+        "**Admin only.** The undo for the endpoint above. Reversibility from the same screen is "
+        "the difference between a soft delete and a mistake."
+    ),
+)
+async def update_user(
+    user_id: int, payload: UserActiveUpdate, session: DbSession, admin: AdminUser
+) -> UserSummary:
+    return await stats_service.set_user_active(
+        session, user_id, is_active=payload.is_active, actor=admin
+    )

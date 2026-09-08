@@ -58,8 +58,7 @@ export function DemoSignInCard({ onSignIn }: { onSignIn: (password: string) => P
             <h2 className="text-sm font-medium text-ink">For the Moksha testing team</h2>
             <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
               Use the password to sign in — no Google account needed. This is an authentication
-              shortcut for review, not an authorization bypass: it issues the same session token
-              Google sign-in does, and every server-side check still applies.
+              shortcut for review, not an authorization bypass.
             </p>
           </div>
         </div>

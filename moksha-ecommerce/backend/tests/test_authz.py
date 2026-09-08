@@ -110,6 +110,8 @@ def _body(method: str, path: str) -> dict[str, object] | None:
         return {"price_cents": 1}
     if method == "PATCH" and path.endswith("/status"):
         return {"status": "paid"}
+    if method == "PATCH" and "/admin/users/" in path:
+        return {"is_active": True}
     if method == "POST" and path.endswith(f"{API}/orders"):
         return {"items": [{"product_id": 1, "quantity": 1}]}
     return None

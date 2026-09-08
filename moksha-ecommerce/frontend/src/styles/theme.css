@@ -67,6 +67,19 @@
   --warning-soft-ink: #7d5417;
 
   --info: #2c5578;
+
+  /* --- Chart series ---------------------------------------------------
+     Four hues that stay distinguishable when four lines cross each other,
+     and stay quiet enough that the chart is not the loudest thing on the
+     page. Deliberately not the semantic colours: `--danger` on a line
+     labelled "Orders" would imply something is wrong with orders.
+     Chosen for hue separation rather than lightness, so they also survive
+     being printed or seen by someone with a colour deficiency — the
+     tooltip lists every series by name regardless. */
+  --chart-revenue: #1f5a45;
+  --chart-orders: #3d6f96;
+  --chart-customers: #b07d2a;
+  --chart-products: #7a5c9e;
   --info-soft: #e7eef5;
   --info-soft-ink: #1f3f5c;
 
@@ -184,6 +197,13 @@
     --warning-soft-ink: #ddb469;
 
     --info: #7aa9d3;
+
+    /* Lifted well clear of the dark ground — the light-mode values are
+       nearly invisible on it. */
+    --chart-revenue: #6cbd97;
+    --chart-orders: #7aa9d3;
+    --chart-customers: #d5a659;
+    --chart-products: #b79ad8;
     --info-soft: #16212c;
     --info-soft-ink: #9cc2e3;
 
@@ -230,6 +250,13 @@
   --warning-soft-ink: #ddb469;
 
   --info: #7aa9d3;
+
+  /* Same values as the media-query block above — the explicit toggle has to
+     win in both directions, so every token is redefined here too. */
+  --chart-revenue: #6cbd97;
+  --chart-orders: #7aa9d3;
+  --chart-customers: #d5a659;
+  --chart-products: #b79ad8;
   --info-soft: #16212c;
   --info-soft-ink: #9cc2e3;
 

@@ -77,6 +77,7 @@ class UserSummary(BaseModel):
     name: str
     picture_url: str | None
     role: UserRole
+    is_active: bool
     created_at: datetime
 
     order_count: int = Field(description="Every order they have placed, in any state.")
@@ -88,3 +89,9 @@ class UserSummary(BaseModel):
         )
     )
     last_order_at: datetime | None
+
+
+class UserActiveUpdate(BaseModel):
+    """Restoring a disabled account. Deactivating is the DELETE verb; this is the undo."""
+
+    is_active: bool
