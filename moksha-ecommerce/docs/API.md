@@ -53,6 +53,8 @@ unclassified.
 | GET | `/admin/orders/{id}` | **Admin** |
 | PATCH | `/admin/orders/{id}/status` | **Admin** |
 | GET | `/admin/stats` | **Admin** |
+| GET | `/admin/stats/timeseries` | **Admin** |
+| GET | `/admin/users` | **Admin** |
 
 ---
 
@@ -331,12 +333,42 @@ whitespace and key order and breaks the HMAC — the classic reason a webhook "r
 ```json
 { "message": "what's the price of the curl gel?", "history": [] }
 ```
-→ `{ "reply": "The Curl Defining Gel is ₹649.00. Only 1 left." }`
+→ `{ "reply": "The Curl Defining Gel is ₹649.00. Only 1 left.", "cart": [] }`
+
+#### The cart tool, and what it deliberately cannot do
+
+`add_to_cart` is the agent's only tool that changes anything the customer sees, and what it
+changes is a **proposal**: a validated cart line the browser applies to the cart it already owns.
+There is no server-side cart (see [D-012](DECISIONS.md)), and adding one so a chat feature could
+write to it would be the wrong reason to change the schema.
+
+```json
+{ "reply": "Two gels are in your cart — open it to pay.",
+  "cart": [ { "product_id": 4, "slug": "curl-defining-gel", "name": "Curl Defining Gel",
+              "quantity": 2, "unit_price_cents": 64900, "currency": "INR",
+              "image_url": "/products/curl-defining-gel.svg", "stock": 12 } ] }
+```
+
+What the server guarantees about that object is exactly what it would guarantee if the customer
+had clicked the button themselves: the product exists, is live, and had that much stock when it
+was checked. The prices are display-only, like the client's own cart snapshot — the amount
+actually charged is recomputed from the database inside the order service at checkout, under the
+stock lock.
+
+**The agent can fill a cart and cannot spend anyone's money.** It cannot place an order, cannot
+take payment, and cannot edit the catalogue; the customer opens the cart and checks out. Two tests
+say so directly: a proposal writes no order row and decrements no stock, and the tool refuses an
+unknown, sold-out or withdrawn product.
 
 ### `POST /chat/stream` · Authenticated
 
-Server-Sent Events. Each `data:` line is a JSON object: `{"delta": "..."}`, `{"done": true}`, or
+Server-Sent Events. Each `data:` line is a JSON object: `{"delta": "..."}` for text,
+`{"cart": [...]}` once at the end if the agent added anything, `{"done": true}` to finish, or
 `{"error": {...}}`.
+
+The cart event arrives once at the end rather than per tool call: the agent may add two products
+across two calls, and the client should apply one coherent set instead of watching its cart grow
+mid-sentence.
 
 Errors travel **inside** the stream because the response is already 200 by the time streaming
 begins — a client that only checked the status would hang on a connection that simply stops
@@ -412,6 +444,47 @@ transition table rejects a second cancel before the release code is reached.
 ### `GET /admin/stats` · Admin
 Revenue counts only orders that reached `paid` or `fulfilled`. A pending order is not revenue, and
 counting it would overstate takings by every abandoned checkout.
+
+### `GET /admin/stats/timeseries` · Admin
+`?days=30` (1–365). Four series over the window, bucketed by UTC day:
+
+```json
+{ "start": "2026-08-10", "end": "2026-09-08",
+  "points": [ { "date": "2026-08-10", "revenue_cents": 0, "orders": 0,
+                "customers": 2, "products": 14 } ] }
+```
+
+**Every day in the window is returned, including the empty ones.** A sparse series is how a chart
+lies without anyone writing a false number: omit the quiet days and the line joins the two either
+side of the gap, showing a smooth trend across a period when nothing happened.
+
+Two of the series are **flows** — `revenue_cents` and `orders`, what happened that day — and two
+are **stocks** — `customers` and `products`, how many existed by the end of it. They share a
+response but not an axis, and the dashboard plots one at a time: a running total only ever goes
+up, so overlaying it on a daily count always makes it look like the winner.
+
+Bucketing is by UTC day because that is what `created_at` is stored in. Bucketing in the shop's
+timezone is the honest fix for a single-region shop, and inventing a timezone here would be worse
+than being explicit.
+
+### `GET /admin/users` · Admin
+Everyone with an account and what they have bought, biggest spender first. `?role=customer` filters;
+omitted, admins are included, because an operator looking at the user list wants to see them.
+
+```json
+{ "items": [ { "id": 2, "email": "…", "name": "…", "role": "customer",
+               "order_count": 4, "paid_order_count": 2,
+               "total_spent_cents": 30000, "last_order_at": "2026-09-07T…" } ],
+  "total": 3, "limit": 50, "offset": 0 }
+```
+
+`total_spent_cents` counts paid and fulfilled orders only — the same definition `/admin/stats` uses
+for revenue, and a test asserts the two agree. Two figures on one screen that disagree about what a
+sale is are worse than one figure.
+
+Computed as one grouped `LEFT JOIN`, not a query per user. The obvious implementation of this
+screen is N+1, and at a hundred customers that is a hundred round trips to render one table. The
+join is `LEFT` so a customer who has bought nothing still appears.
 
 ---
 

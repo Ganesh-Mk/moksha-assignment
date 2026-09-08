@@ -285,3 +285,64 @@ product, and the env var is how you get it back — leave `DEMO_LOGIN_PASSWORD` 
 does not exist. The alternative considered and rejected was adding reviewers to the Google test-user
 list, which needs their email addresses in advance and does not survive being forwarded to someone
 else.
+
+---
+
+## D-017 · The dashboard chart is hand-written SVG
+**Status:** accepted · 2026-09-08
+
+**Decision:** the admin activity chart is about 200 lines of SVG and arithmetic rather than
+Recharts, Chart.js or Visx.
+
+**Why.** Recharts is ~110 kB gzipped and brings its own React tree, its own theming model and its
+own opinions about typography — to draw one line. It would also be the only thing in the frontend
+that does not inherit the token layer, so the one chart on the site would be the one element that
+looks like something else. What it actually saves is a Catmull-Rom smoother (12 lines), a
+"round number above the maximum" helper (6 lines), and a hover handler.
+
+Two details worth defending, because they are where a chart stops being true:
+
+- **Catmull-Rom, not a quadratic smooth.** Catmull-Rom *interpolates* — every reading is on the
+  line. Quadratic smoothing passes near the points rather than through them, at which point the
+  curve is no longer the data. Tension is 0.5 rather than 1.0 because at 1.0 the curve overshoots
+  a spike and draws values that never happened, including negative revenue.
+- **Flows are anchored at zero, stocks are not.** Revenue and orders start the axis at 0, or a
+  small wobble is drawn as a cliff. A running total of customers does not, or 1,000 → 1,010 is a
+  flat line. This is also why the four series share a filter rather than an axis.
+
+**Gave up:** legends, brushes, zoom, stacked series — everything a library would give for free and
+nothing this dashboard needs. If a second chart type is ever wanted, that is the moment to
+reconsider, not now.
+
+---
+
+## D-018 · The agent proposes cart lines; it cannot buy anything
+**Status:** accepted · 2026-09-08
+
+A customer asking the assistant to "order the curl gel" is the obvious thing to ask it, and until
+now the honest answer was "I can't". Making it possible raises the question this project exists to
+answer carefully: how much should a language model be allowed to do on someone's behalf?
+
+**Decision:** `add_to_cart` resolves a product through `product_service` — the same function the
+routers call — and records a **proposal**. The streaming reply carries those proposals to the
+browser, which applies them to the cart it already owns and shows a *View cart & pay* button.
+
+**Why not a server-side cart.** The cart is client-owned state (D-012) and there is no cart table.
+Adding one so a chat feature could write to it would be a schema change driven by the wrong
+requirement, and it would make the agent's write a real write.
+
+**Where the line is drawn, and why there.** The agent can put something in front of a customer and
+cannot buy it for them. Payment is untouched — cart, checkout, Stripe — and the amount charged is
+still recomputed from database prices under the stock lock, so nothing in the proposal payload is
+trusted on the way back in. The last step is deliberately a thing a person does, because the
+failure mode of getting this wrong is spending someone's money on the strength of a sentence they
+typed, possibly a sentence someone else wrote into a product review.
+
+`tests/test_agent_cart.py` states the boundary as assertions: a proposal writes no order row and
+decrements no stock, the tool refuses an unknown, sold-out or withdrawn product, and the tool
+inventory test — which previously asserted the agent had *no* write tool — now names `add_to_cart`
+explicitly and still forbids anything matching `create`, `place`, `pay`, `cancel` or `refund`.
+
+**Gave up:** the simpler claim "the agent is read-only", which was easier to defend in one
+sentence. It is replaced by a claim that is still true and more useful: the agent can do exactly
+one thing that changes what you see, and it is the thing you could have done yourself with a click.

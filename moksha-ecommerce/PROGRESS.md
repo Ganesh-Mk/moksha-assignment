@@ -104,6 +104,42 @@ Off unless `DEMO_LOGIN_PASSWORD` is set (404, not 503 — see D-016 for why), co
 5 attempts a minute per client address with a reset on success. The rate limiter moved out of
 `chat_service` into `core/rate_limit.py` when it acquired a second caller.
 
+## Post-deploy: a second pass over the live app (2026-09-08)
+
+Walking the deployed site turned up a batch of things no test could have failed on, plus two that
+one should have.
+
+**The admin console was four numbers and two lists.** It now opens with an activity chart —
+revenue, orders, customers or products over 7/30/90 days — and a customer table showing what each
+account has bought. Both are new aggregates: `/admin/stats/timeseries` and `/admin/users`. The
+chart is hand-written SVG (D-017); the series is *dense*, because a chart that omits quiet days
+draws a trend across them, and it plots one metric at a time because two of the four are flows and
+two are running totals.
+
+**The assistant can fill a cart now** (D-018). It proposes validated lines, the browser applies
+them, and a *View cart & pay* button hands the customer back to the normal checkout. It still
+cannot place an order or take payment, and the tests say so rather than the prompt.
+
+**The chat panel was rendering raw markdown** — `**Curl Refresh Mist**` with its asterisks
+showing. Parsing is now a pure function in `lib/markdown.ts` with twelve tests, which is the right
+shape for it: that was a parsing bug, not a rendering one. Also three bouncing dots instead of an
+empty bubble while the model works, and a robot instead of a sparkle.
+
+**Two products had lost their `image_url`** and the shop rendered "No image" for a day. The seed is
+the one place the backend names a file the *frontend* has to be carrying, and nothing checked the
+two agreed — `tests/test_seed.py` now does. The cause was the admin editor: its image field was
+`type="url"`, which rejects `/products/x.svg` outright, because a root-relative path has no scheme
+or host.
+
+**The shop now sells the Hydra Curls range the A1 landing page advertises** — the same five
+products, with its photography. The two deliverables read as one brand rather than two unrelated
+demos.
+
+Smaller: adding to the cart throws a ghost of the product image into the cart button, which bumps
+on landing; the header sign-in button and the product-page stepper match the control beside them;
+navigating starts at the top of the new page; the mobile filter pills stopped losing their bottom
+edge to `overflow-x: auto` forcing `overflow-y` to `auto`.
+
 ## Open items
 
 1. **Set `DEMO_LOGIN_PASSWORD=moksha@123` on Render.** The code is deployed — `/health/db` already
@@ -127,7 +163,7 @@ Off unless `DEMO_LOGIN_PASSWORD` is set (404, not 503 — see D-016 for why), co
   the shared root `.env`.
 
 ## Decisions
-Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-001 … D-016).
+Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-001 … D-018).
 
 ## Time log
 | Date | Phases |
