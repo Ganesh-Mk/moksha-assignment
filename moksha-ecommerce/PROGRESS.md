@@ -140,6 +140,38 @@ on landing; the header sign-in button and the product-page stepper match the con
 navigating starts at the top of the new page; the mobile filter pills stopped losing their bottom
 edge to `overflow-x: auto` forcing `overflow-y` to `auto`.
 
+## Third pass: merchandising, user management, a legible chart (2026-09-08)
+
+**The catalogue had no order.** It was sorted by `created_at DESC`, which is not a decision anybody
+made — whichever products were seeded last came first, so adding three products silently pushed the
+range around. `products.display_order` is a new column with a migration; position in the seed tuple
+is the order, stepped by ten so a product can be slotted between two without renumbering. The five
+photographed Hydra Curls products lead.
+
+**Product images were cropped.** A 4:5 frame with `object-cover` cut the top and bottom off a tall
+bottle and ran it edge to edge into its neighbours. A padded square with `object-contain` shows the
+whole product with air around it, which is how a shop photographs one.
+
+**Customers got their own screen.** `/admin/users`, built to match the catalogue screen exactly and
+reached by *Manage users* the way *Manage stock* works. `DELETE /admin/users/{id}` disables an
+account and `PATCH` restores it — a soft delete, because a hard one would either orphan the
+customer's orders or cascade them away, and an order has to survive as a financial record. Two
+guards, both about not locking everyone out: an admin cannot disable themselves, and the last
+active admin cannot be disabled. Tests assert the orders survive, revenue is unchanged, and a
+disabled user can no longer refresh a session.
+
+**The chart got an "All" view, and two axes.** Money and counts are not the same quantity — on one
+scale, three customers beside ₹1,698 is a flat line on the floor — so rupees are labelled down the
+left and counts down the right, and each series declares which it belongs to. Four chart hues live
+in the token layer, in both themes; deliberately not the semantic colours, because `--danger` on a
+line labelled "Orders" implies something is wrong with orders.
+
+**Axis labels were rendering at 23px.** They were `<text>` inside a fixed-viewBox SVG, so they
+scaled with the container. Moving them to HTML alongside the plot keeps them at a real CSS size at
+every width — worth remembering: anything inside a scaled SVG that is meant to be read is a trap.
+
+Every admin sub-page now opens with a *Back to Admin* link, and the login card lost a sentence.
+
 ## Open items
 
 1. **Set `DEMO_LOGIN_PASSWORD=moksha@123` on Render.** The code is deployed — `/health/db` already
