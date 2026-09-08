@@ -75,6 +75,16 @@ class Settings(BaseSettings):
     # --- Phase 2: Google Sign-In --------------------------------------------------------
     google_client_id: str | None = None
 
+    # Password for the demo sign-in, which exists so the app can be *reviewed*.
+    #
+    # The Google consent screen is in Testing mode, so only allow-listed Google accounts can sign
+    # in at all. Without this, a reviewer sees the public catalogue and nothing else — no
+    # checkout, no orders, no AI agent, no admin. That is most of the assignment.
+    #
+    # Unset means the endpoint does not exist (404), so this is opt-in per deployment rather than
+    # a door that is always ajar.
+    demo_login_password: str | None = None
+
     # --- Phase 5: Stripe ----------------------------------------------------------------
     stripe_secret_key: str | None = None
     stripe_publishable_key: str | None = None
@@ -135,6 +145,15 @@ class Settings(BaseSettings):
         assert self.stripe_secret_key and self.stripe_webhook_secret  # narrowed by the check
         return self.stripe_secret_key, self.stripe_webhook_secret
 
+    def require_demo_login(self) -> str:
+        if not self.demo_login_password:
+            raise ConfigurationError("Demo sign-in", ["DEMO_LOGIN_PASSWORD"])
+        return self.demo_login_password
+
+    @property
+    def demo_login_enabled(self) -> bool:
+        return bool(self.demo_login_password)
+
     def require_anthropic(self) -> str:
         if not self.anthropic_api_key:
             raise ConfigurationError("AI support agent", ["ANTHROPIC_API_KEY"])
@@ -154,6 +173,8 @@ class Settings(BaseSettings):
                 ("STRIPE_WEBHOOK_SECRET", self.stripe_webhook_secret),
             ),
             "ai_agent": status(("ANTHROPIC_API_KEY", self.anthropic_api_key)),
+            # Reported so it is obvious from outside whether the demo door is open.
+            "demo_login": "enabled" if self.demo_login_enabled else "disabled",
         }
 
     def assert_production_ready(self) -> None:

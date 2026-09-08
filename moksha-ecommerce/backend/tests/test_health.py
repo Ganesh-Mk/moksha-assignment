@@ -20,7 +20,12 @@ async def test_readiness_reports_database_and_feature_configuration(client: Asyn
     assert body["database"] == "ok"
     # Every optional integration reports its own state, so a half-configured deployment is
     # visible from the outside rather than discovered when a customer hits checkout.
-    assert set(body["features"]) == {"google_sign_in", "stripe_payments", "ai_agent"}
+    assert set(body["features"]) == {
+        "google_sign_in",
+        "stripe_payments",
+        "ai_agent",
+        "demo_login",
+    }
 
 
 async def test_every_response_carries_a_correlation_id(client: AsyncClient) -> None:

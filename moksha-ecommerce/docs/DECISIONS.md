@@ -245,3 +245,43 @@ not. Anywhere a secret can be *returned* rather than merely used, the kind of se
 asserting — the cost is one `startswith`, and the failure it prevents is a leaked credential.
 
 **Gave up:** nothing. Six regression tests assert the key never appears in the response body.
+
+---
+
+## D-016 · A password-only demo sign-in, alongside Google OAuth
+**Status:** accepted · 2026-09-08
+
+Google OAuth is the real sign-in and stays the real sign-in. But the consent screen is in
+**Testing** mode — Google only lets allow-listed accounts through it, and moving to Production
+means a verification review. A reviewer opening the live URL therefore cannot authenticate at all,
+and sees the public catalogue and nothing else: no checkout, no order history, no AI agent, no
+admin console. Most of what this assignment is graded on would be invisible.
+
+**Decision:** `POST /auth/demo` accepts one shared password and signs the caller into a seeded
+demo account, as `admin` or `customer`. No email field — the password does not identify an account,
+it unlocks two fixed ones.
+
+**The distinction that makes this defensible: it is an *authentication* shortcut, not an
+*authorization* one.** It issues the same JWT `/auth/google` issues, for an ordinary user row with
+an ordinary role. Nothing downstream is special-cased; there is no "is demo" flag anywhere.
+`require_admin`, the 404-not-403 order ownership rule, and the agent's closure-scoped identity all
+behave identically. The regression tests state it as a pair: a demo **admin** token opens
+`/admin/orders`, and a demo **customer** token is still refused with 403. If the second test ever
+fails, the feature has become the thing it claims not to be.
+
+**What keeps it honest:**
+
+- **Off unless configured.** No `DEMO_LOGIN_PASSWORD`, no endpoint — 404, not 503. A 503 says
+  "this exists and is broken", which is an invitation.
+- **Constant-time comparison.** `==` on a secret leaks length and prefix through timing.
+- **5 attempts a minute per client address**, reset on success. A shared password is necessarily
+  weaker and more widely known than a real credential, so the limit is the actual defence. Much
+  tighter than the chat limit, which is about cost rather than security.
+- **The UI says what it is.** The login page labels it "Reviewer sign-in — not Google OAuth" and
+  explains why, rather than presenting a password box in an OAuth app with no explanation.
+
+**Gave up:** a deployment where the only way in is Google. That is the correct posture for a real
+product, and the env var is how you get it back — leave `DEMO_LOGIN_PASSWORD` unset and the door
+does not exist. The alternative considered and rejected was adding reviewers to the Google test-user
+list, which needs their email addresses in advance and does not survive being forwarded to someone
+else.

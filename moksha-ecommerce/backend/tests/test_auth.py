@@ -14,6 +14,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1 import auth as auth_router
 from app.config import settings
 from app.core.security import create_token
 from app.models import User, UserRole
@@ -336,3 +337,134 @@ class TestTokenForgery:
         )
 
         assert response.status_code == 404
+
+
+DEMO_SIGN_IN = "/api/v1/auth/demo"
+DEMO_PASSWORD = "correct-horse-battery-staple"
+
+
+@pytest.fixture
+def demo_login_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Turn the demo door on, and give every test a fresh rate-limit budget.
+
+    The limiter is a module-level singleton — deliberately, since it is process-wide state in
+    production too — so without the reset the sixth test in this file would start failing for
+    reasons that have nothing to do with what it asserts.
+    """
+    monkeypatch.setattr(settings, "demo_login_password", DEMO_PASSWORD)
+    auth_router._demo_login_limiter._hits.clear()
+
+
+class TestDemoSignIn:
+    """The password-only door that exists so the app can be reviewed.
+
+    What these tests are really pinning down is the claim made in `auth_service`: that this is an
+    *authentication* shortcut and not an *authorization* one. Hence the last two tests, which
+    check that a demo token is an ordinary token — it opens exactly what its role opens, and
+    nothing more.
+    """
+
+    async def test_the_endpoint_does_not_exist_when_no_password_is_configured(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """404, not 503.
+
+        503 would be honest about *why* it is unavailable, which is the right answer for a
+        misconfigured feature. This one is not misconfigured — it is switched off, and saying
+        "this exists but is unavailable" invites someone to come back and look for it.
+        """
+        monkeypatch.setattr(settings, "demo_login_password", None)
+
+        response = await client.post(DEMO_SIGN_IN, json={"password": DEMO_PASSWORD})
+
+        assert response.status_code == 404
+
+    async def test_the_right_password_signs_in_as_admin(
+        self, client: AsyncClient, demo_login_enabled: None
+    ) -> None:
+        response = await client.post(DEMO_SIGN_IN, json={"password": DEMO_PASSWORD})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["user"]["role"] == "admin"
+        assert body["access_token"] and body["refresh_token"]
+
+    async def test_the_role_can_be_asked_for_explicitly(
+        self, client: AsyncClient, demo_login_enabled: None
+    ) -> None:
+        response = await client.post(
+            DEMO_SIGN_IN, json={"password": DEMO_PASSWORD, "role": "customer"}
+        )
+
+        assert response.status_code == 200
+        assert response.json()["user"]["role"] == "customer"
+
+    async def test_a_wrong_password_is_rejected(
+        self, client: AsyncClient, demo_login_enabled: None, db: AsyncSession
+    ) -> None:
+        response = await client.post(DEMO_SIGN_IN, json={"password": "not-the-password"})
+
+        assert response.status_code == 401
+        # And it left nothing behind — a failed attempt must not provision the account.
+        assert (await db.execute(select(User))).scalars().all() == []
+
+    async def test_signing_in_twice_reuses_one_account(
+        self, client: AsyncClient, demo_login_enabled: None, db: AsyncSession
+    ) -> None:
+        first = await client.post(DEMO_SIGN_IN, json={"password": DEMO_PASSWORD})
+        second = await client.post(DEMO_SIGN_IN, json={"password": DEMO_PASSWORD})
+
+        assert first.json()["user"]["id"] == second.json()["user"]["id"]
+        assert len((await db.execute(select(User))).scalars().all()) == 1
+
+    async def test_repeated_wrong_guesses_are_rate_limited(
+        self, client: AsyncClient, demo_login_enabled: None
+    ) -> None:
+        """A shared password is weaker than a real credential, so the limit is the real defence."""
+        for _ in range(5):
+            assert (await client.post(DEMO_SIGN_IN, json={"password": "wrong"})).status_code == 401
+
+        response = await client.post(DEMO_SIGN_IN, json={"password": "wrong"})
+
+        assert response.status_code == 429
+        assert response.headers["retry-after"]
+
+    async def test_a_correct_password_clears_the_counter(
+        self, client: AsyncClient, demo_login_enabled: None
+    ) -> None:
+        """Four typos followed by a success must not leave a reviewer one attempt from lockout."""
+        for _ in range(4):
+            await client.post(DEMO_SIGN_IN, json={"password": "wrong"})
+
+        assert (
+            await client.post(DEMO_SIGN_IN, json={"password": DEMO_PASSWORD})
+        ).status_code == 200
+        assert (await client.post(DEMO_SIGN_IN, json={"password": "wrong"})).status_code == 401
+
+    async def test_the_demo_admin_token_is_an_ordinary_admin_token(
+        self, client: AsyncClient, demo_login_enabled: None
+    ) -> None:
+        """The point of the whole design: nothing downstream treats this token specially."""
+        token = (await client.post(DEMO_SIGN_IN, json={"password": DEMO_PASSWORD})).json()[
+            "access_token"
+        ]
+
+        response = await client.get(
+            "/api/v1/admin/orders", headers={"Authorization": f"Bearer {token}"}
+        )
+
+        assert response.status_code == 200
+
+    async def test_the_demo_customer_token_is_still_refused_by_admin_routes(
+        self, client: AsyncClient, demo_login_enabled: None
+    ) -> None:
+        """The inverse, and the more important half: the door does not grant privilege."""
+        token = (
+            await client.post(DEMO_SIGN_IN, json={"password": DEMO_PASSWORD, "role": "customer"})
+        ).json()["access_token"]
+
+        response = await client.get(
+            "/api/v1/admin/orders", headers={"Authorization": f"Bearer {token}"}
+        )
+
+        assert response.status_code == 403

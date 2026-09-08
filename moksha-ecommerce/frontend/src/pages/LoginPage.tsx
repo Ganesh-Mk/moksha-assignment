@@ -2,6 +2,7 @@ import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
+import { DemoSignInCard } from "@/components/auth/DemoSignInCard";
 import { Container } from "@/components/layout/Container";
 import { Card, CardBody } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/authContext";
@@ -13,7 +14,7 @@ interface LocationState {
 }
 
 export function LoginPage() {
-  const { user, isLoading, signIn } = useAuth();
+  const { user, isLoading, signIn, signInWithDemoPassword } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +98,26 @@ export function LoginPage() {
             ) : null}
           </CardBody>
         </Card>
+
+        {/* A labelled rule rather than a bare line: the blocks either side of
+            it are both sign-in, and without the word it reads as "and then". */}
+        <div className="my-5 flex items-center gap-3" aria-hidden>
+          <span className="h-px flex-1 bg-line" />
+          <span className="label-caps">or</span>
+          <span className="h-px flex-1 bg-line" />
+        </div>
+
+        <DemoSignInCard
+          onSignIn={async (password, role) => {
+            setError(null);
+            const signedIn = await signInWithDemoPassword(password, role);
+            // Admins land on the admin console. Sending them to the shop first
+            // would hide the half of the app they signed in to look at.
+            navigate(signedIn.role === "admin" ? "/admin/orders" : destination, {
+              replace: true,
+            });
+          }}
+        />
 
         <div className="mt-5 flex items-start gap-2 text-xs text-ink-subtle">
           <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden />

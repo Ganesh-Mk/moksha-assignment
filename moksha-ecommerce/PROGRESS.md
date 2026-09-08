@@ -83,12 +83,35 @@ The through-line: each was a boundary the tests did not cross. Fail-loud config 
 variables from day one; it had nothing to say about a variable holding the *wrong kind* of value —
 which is now checked.
 
+## Post-deploy: a reviewer sign-in (2026-09-08)
+
+Google OAuth is the real sign-in and stays the real sign-in — but the consent screen is in Testing
+mode, so Google only lets allow-listed accounts through. A reviewer opening the live URL could not
+authenticate at all, which meant the public catalogue and nothing else: no checkout, no order
+history, no AI agent, no admin console. Most of what is graded was invisible.
+
+`POST /auth/demo` takes one shared password and a role, and signs you into a seeded demo account.
+No email field — the password does not identify an account, it unlocks two fixed ones.
+
+The framing that matters, and the one to defend in the interview: **this is an authentication
+shortcut, not an authorization bypass.** It issues the same JWT `/auth/google` issues, for an
+ordinary user row with an ordinary role. There is no "is demo" flag anywhere; `require_admin`, the
+404-not-403 ownership rule and the agent's closure-scoped identity are untouched. The tests state
+it as a pair — a demo *admin* token opens `/admin/orders`, a demo *customer* token gets 403 from
+it. If the second one ever fails, the feature has become the thing it claims not to be.
+
+Off unless `DEMO_LOGIN_PASSWORD` is set (404, not 503 — see D-016 for why), constant-time compare,
+5 attempts a minute per client address with a reset on success. The rate limiter moved out of
+`chat_service` into `core/rate_limit.py` when it acquired a second caller.
+
 ## Open items
 
-1. **Roll the Stripe secret key** — briefly exposed by `/payments/config` before the prefix guard.
+1. **Set `DEMO_LOGIN_PASSWORD` on Render.** Until it is set the reviewer sign-in 404s and the login
+   page says so. Nothing else needs it — the frontend has no matching env var.
+2. **Roll the Stripe secret key** — briefly exposed by `/payments/config` before the prefix guard.
    Test-mode, bounded risk, but it should not stay live.
-2. **Total time taken** — the one deliverable still blank, and only the user can fill it in.
-3. **Port 5173** is contested with Assignment 1 locally. Only A2 needs it (Google authorises that
+3. **Total time taken** — the one deliverable still blank, and only the user can fill it in.
+4. **Port 5173** is contested with Assignment 1 locally. Only A2 needs it (Google authorises that
    origin and no other), so A1 should move. Not my folder to change.
 
 ## Local environment notes
@@ -103,10 +126,10 @@ which is now checked.
   the shared root `.env`.
 
 ## Decisions
-Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-001 … D-014).
+Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-001 … D-016).
 
 ## Time log
 | Date | Phases |
 |---|---|
 | 2026-09-07 | 0–9. Google, Stripe and Anthropic credentials arrived mid-build; every integration verified against its real service. |
-| 2026-09-08 | 10 — deployed to Vercel + Render + Neon, and the four production-only bugs above found and fixed. |
+| 2026-09-08 | 10 — deployed to Vercel + Render + Neon, and the four production-only bugs above found and fixed. Light theme, order thumbnails, and the reviewer sign-in added after walking the live app. |

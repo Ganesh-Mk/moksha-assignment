@@ -17,6 +17,18 @@ class GoogleSignInRequest(BaseModel):
     )
 
 
+class DemoSignInRequest(BaseModel):
+    """Password only — no email, deliberately.
+
+    There is no account to identify: the password selects *which seeded demo account* to sign
+    into, and both are fixed. Asking for an email would imply a user directory that this door
+    does not have, and would be one more thing for a reviewer to get wrong.
+    """
+
+    password: str = Field(min_length=1, max_length=256)
+    role: UserRole = UserRole.ADMIN
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str = Field(min_length=1, max_length=8192)
 

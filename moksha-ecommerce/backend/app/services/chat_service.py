@@ -6,8 +6,6 @@ graph never builds its own, which is the seam the test suite substitutes a stub 
 
 from __future__ import annotations
 
-import time
-from collections import defaultdict, deque
 from collections.abc import AsyncIterator
 
 from langchain_core.language_models import BaseChatModel
@@ -19,8 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agent.graph import AgentState, build_graph
 from app.agent.tools import build_tools
 from app.config import settings
-from app.core.exceptions import RateLimitError, ValidationError
+from app.core.exceptions import ValidationError
 from app.core.logging import get_logger
+from app.core.rate_limit import SlidingWindowRateLimiter
 from app.models import User
 
 logger = get_logger(__name__)
@@ -29,47 +28,7 @@ MAX_MESSAGE_LENGTH = 2000
 MAX_HISTORY_TURNS = 10
 
 
-class SlidingWindowRateLimiter:
-    """Per-user request limiter over a one-minute sliding window.
-
-    **In-process, and that is a deliberate limitation with a stated fix.** It holds state in a
-    dict, so with more than one API instance each gets its own allowance. The production answer is
-    Redis with the same sliding-window logic — a shared counter, one `ZADD`/`ZCOUNT` per request.
-
-    It is here rather than absent because every agent turn is a paid API call, and an endpoint
-    that will call an LLM on demand with no ceiling is a billing incident waiting for someone to
-    notice it. A single-instance limit is not perfect; it is the difference between a bounded and
-    an unbounded cost.
-    """
-
-    def __init__(self, *, limit: int, window_seconds: int = 60) -> None:
-        self._limit = limit
-        self._window = window_seconds
-        self._hits: dict[int, deque[float]] = defaultdict(deque)
-
-    def check(self, user_id: int) -> None:
-        now = time.monotonic()
-        hits = self._hits[user_id]
-
-        # Drop everything outside the window before counting, so the window really does slide
-        # rather than resetting on a fixed boundary — a fixed window lets a user spend their
-        # whole allowance twice across the boundary in quick succession.
-        while hits and now - hits[0] > self._window:
-            hits.popleft()
-
-        if len(hits) >= self._limit:
-            retry_after = int(self._window - (now - hits[0])) + 1
-            logger.warning("chat_rate_limited", extra={"user_id": user_id})
-            raise RateLimitError(
-                "You are sending messages faster than I can answer. "
-                f"Please wait {retry_after} seconds.",
-                retry_after_seconds=retry_after,
-            )
-
-        hits.append(now)
-
-
-_limiter = SlidingWindowRateLimiter(limit=settings.chat_rate_limit_per_minute)
+_limiter = SlidingWindowRateLimiter(limit=settings.chat_rate_limit_per_minute, label="chat")
 
 
 def build_chat_model() -> BaseChatModel:
@@ -137,7 +96,7 @@ def _prepare(
     reached — one place to change the rule, and no way to add a third endpoint that forgets it.
     """
     text = _validate(message)
-    _limiter.check(user.id)
+    _limiter.check(str(user.id))
 
     chat_model = model if model is not None else build_chat_model()
     graph = build_graph(

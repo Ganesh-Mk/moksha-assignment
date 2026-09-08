@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 
 import { AuthContext, type AuthState } from "@/hooks/authContext";
 import { ApiError, request, tokenStore } from "@/lib/api";
-import type { TokenResponse, User } from "@/types/api";
+import type { TokenResponse, User, UserRole } from "@/types/api";
 
 /**
  * Session state provider.
@@ -53,13 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = useCallback(
-    async (googleIdToken: string): Promise<User> => {
-      const response = await request<TokenResponse>("/auth/google", {
-        method: "POST",
-        body: { id_token: googleIdToken },
-        anonymous: true,
-      });
+  // Adopt a token pair as the current session. Shared by both sign-in doors,
+  // because everything after the exchange is identical — which is the client
+  // half of the point made in `auth_service.sign_in_with_demo_password`: the
+  // demo password is a different way to *authenticate*, not a different kind
+  // of session.
+  const adopt = useCallback(
+    async (response: TokenResponse): Promise<User> => {
       tokenStore.set(response.access_token, response.refresh_token);
       setUser(response.user);
       // Anything cached was fetched as "nobody". Clear it so the new session
@@ -68,6 +68,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.user;
     },
     [queryClient],
+  );
+
+  const signIn = useCallback(
+    (googleIdToken: string): Promise<User> =>
+      request<TokenResponse>("/auth/google", {
+        method: "POST",
+        body: { id_token: googleIdToken },
+        anonymous: true,
+      }).then(adopt),
+    [adopt],
+  );
+
+  const signInWithDemoPassword = useCallback(
+    (password: string, role: UserRole): Promise<User> =>
+      request<TokenResponse>("/auth/demo", {
+        method: "POST",
+        body: { password, role },
+        anonymous: true,
+      }).then(adopt),
+    [adopt],
   );
 
   const signOut = useCallback(() => {
@@ -80,8 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo<AuthState>(
-    () => ({ user, isLoading, isAdmin: user?.role === "admin", signIn, signOut }),
-    [user, isLoading, signIn, signOut],
+    () => ({
+      user,
+      isLoading,
+      isAdmin: user?.role === "admin",
+      signIn,
+      signInWithDemoPassword,
+      signOut,
+    }),
+    [user, isLoading, signIn, signInWithDemoPassword, signOut],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

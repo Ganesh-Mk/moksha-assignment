@@ -37,6 +37,11 @@ https://moksha-api-mv1j.onrender.com/docs
       Render runs, so this is the last unexercised path — the compose file itself, including the
       `init-test-db.sql` mount and the `web` service. It parses (`docker compose config` succeeds).
 - [ ] **Fill in total time taken** in the README — one of the eight listed deliverables.
+- [ ] **Set `DEMO_LOGIN_PASSWORD` on Render**, then sign in through the login page's password box as
+      both Admin and Customer. Until it is set the endpoint 404s and the page says the door is
+      switched off — correct behaviour, but not what a reviewer should meet. Everything about it is
+      covered by tests (`TestDemoSignIn`); what is unverified is only that the variable is present
+      in the deployed environment.
 
 ## Notes for whoever runs this next
 

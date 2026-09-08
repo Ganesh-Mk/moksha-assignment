@@ -77,7 +77,13 @@ PUBLIC_ROUTES = [
     for m, p in ALL_ROUTES
     if p.startswith(f"{API}/products")
     or p.startswith(f"{API}/health")
-    or p in {f"{API}/auth/google", f"{API}/auth/refresh", f"{API}/payments/config"}
+    or p
+    in {
+        f"{API}/auth/google",
+        f"{API}/auth/demo",
+        f"{API}/auth/refresh",
+        f"{API}/payments/config",
+    }
 ]
 
 

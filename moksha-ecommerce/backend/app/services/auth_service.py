@@ -5,6 +5,8 @@ Business logic only — no HTTP, no `HTTPException`. See DECISIONS D-003.
 
 from __future__ import annotations
 
+import secrets
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -103,6 +105,72 @@ async def sign_in_with_google(
     identity = verifier.verify(id_token)
     user = await find_or_create_user(session, identity)
     logger.info("user_signed_in", extra={"user_id": user.id, "role": user.role.value})
+    return user, issue_tokens(user)
+
+
+# The seeded accounts the demo password signs into. Emails on a `.test` TLD (RFC 2606) so they
+# can never collide with a real Google identity, and so nobody mistakes them for a live mailbox.
+DEMO_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
+    UserRole.ADMIN: ("demo.admin@moksha.test", "Demo Admin"),
+    UserRole.CUSTOMER: ("demo.customer@moksha.test", "Demo Customer"),
+}
+
+
+async def sign_in_with_demo_password(
+    session: AsyncSession, *, password: str, role: UserRole
+) -> tuple[User, TokenPair]:
+    """Sign in to a seeded demo account with a shared password.
+
+    **This is an authentication shortcut, not an authorization bypass**, and the distinction is
+    the whole design. It issues exactly the same JWT `sign_in_with_google` does, for a real user
+    row with a real role. Every downstream check — `require_admin`, order ownership, the agent's
+    identity scoping — is untouched and still applies. Nothing anywhere reads "did you come in
+    through the demo door".
+
+    Why it exists: the Google consent screen is in Testing mode, so only allow-listed Google
+    accounts can sign in. A reviewer cannot authenticate at all, which leaves them the public
+    catalogue and nothing else — no checkout, no order history, no AI agent, no admin. The
+    assignment is largely unreviewable without this.
+
+    What keeps it honest:
+
+    * **Off unless configured.** No `DEMO_LOGIN_PASSWORD`, no endpoint. Opt-in per deployment.
+    * **Constant-time comparison.** `==` on secrets leaks length and prefix through timing;
+      `compare_digest` does not. Cheap, and the habit is what matters.
+    * **Rate limited per client**, in the router — a password endpoint without one is a
+      brute-force target, and this password is necessarily weaker than a real credential.
+    * **It cannot reach anything a Google sign-in could not.** The accounts are ordinary rows.
+    """
+    expected = settings.require_demo_login()
+
+    # compare_digest needs bytes or ASCII str; encode so a non-ASCII password cannot raise.
+    if not secrets.compare_digest(password.encode("utf-8"), expected.encode("utf-8")):
+        logger.warning("demo_login_rejected", extra={"role": role.value})
+        raise AuthenticationError("That password is not correct.")
+
+    email, name = DEMO_ACCOUNTS[role]
+    user = (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+
+    if user is None:
+        # Created on demand so the demo works on a database that was migrated but never seeded.
+        user = User(
+            google_sub=f"demo-login-{role.value}",
+            email=email,
+            name=name,
+            role=role,
+            is_active=True,
+        )
+        session.add(user)
+    else:
+        # Re-asserted on every sign-in: the seeded row's role is whatever ADMIN_EMAILS made it
+        # last time a Google sign-in touched it, and the demo admin must actually be an admin.
+        user.role = role
+        user.is_active = True
+
+    await session.commit()
+    await session.refresh(user)
+
+    logger.info("demo_login", extra={"user_id": user.id, "role": user.role.value})
     return user, issue_tokens(user)
 
 

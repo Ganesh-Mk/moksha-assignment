@@ -29,6 +29,7 @@ unclassified.
 | GET | `/health` | Public |
 | GET | `/health/db` | Public |
 | POST | `/auth/google` | Public |
+| POST | `/auth/demo` | Public *(404 unless enabled)* |
 | POST | `/auth/refresh` | Public |
 | GET | `/auth/me` | Authenticated |
 | POST | `/auth/logout` | Authenticated |
@@ -132,6 +133,33 @@ colliding on the unique email index. The role is **re-evaluated on every sign-in
 ```
 
 **401** — signature invalid, expired, wrong audience, unverified email, or disabled account.
+
+### `POST /auth/demo` · Public — only when `DEMO_LOGIN_PASSWORD` is set
+
+```json
+{ "password": "...", "role": "admin" }
+```
+
+`role` defaults to `admin` and accepts `customer`. There is **no email field**: the password does
+not identify an account, it unlocks two fixed seeded ones (`demo.admin@moksha.test`,
+`demo.customer@moksha.test`, both on the RFC 2606 `.test` TLD so they cannot collide with a real
+Google identity). Returns the same body as `/auth/google`.
+
+**This is an authentication shortcut, not an authorization bypass.** It issues exactly the same JWT
+for a real user row with a real role. `require_admin`, order ownership and the agent's identity
+scoping are unchanged and still apply — nothing downstream knows which door the caller came
+through. Two tests pin that down: a demo *admin* token opens `/admin/orders`, and a demo *customer*
+token still gets **403** from it.
+
+It exists because the Google consent screen is in **Testing** mode, so only allow-listed Google
+accounts can sign in at all. Without it a reviewer sees the public catalogue and nothing else.
+
+| Response | When |
+|---|---|
+| **200** | Correct password |
+| **401** | Wrong password — compared with `secrets.compare_digest`, so no timing signal |
+| **404** | `DEMO_LOGIN_PASSWORD` is unset. Deliberately *not* 503: a misconfigured feature is a 503, an absent one is a 404, and "this exists but is unavailable" invites someone to come back for it |
+| **429** | More than 5 attempts a minute from one client address. A success resets the counter, so typos never lock out a reviewer |
 
 ### `POST /auth/refresh` · Public
 

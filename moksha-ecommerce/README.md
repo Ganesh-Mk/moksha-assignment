@@ -140,7 +140,8 @@ exactly the bug this project is about.
 | `GOOGLE_CLIENT_ID` | sign-in |
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | payments |
 | `ANTHROPIC_API_KEY` | the support agent |
-| `ADMIN_EMAILS` | comma-separated; these addresses get the admin role on sign-in |
+| `ADMIN_EMAILS` | comma-separated; these addresses get the admin role on Google sign-in |
+| `DEMO_LOGIN_PASSWORD` | *optional* — enables the reviewer sign-in below. Unset, that endpoint 404s |
 | `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID` | frontend (Vite only exposes `VITE_`-prefixed vars) |
 
 A feature whose credential is absent is **disabled and says so** — `/health/db` reports it, and
@@ -152,16 +153,31 @@ takes orders it cannot charge.
 
 ## Demo accounts
 
-The catalogue is browsable signed out. To place an order, sign in with Google — the app has no
-password login, so the seeded rows below are *claimed* by whichever Google account matches the
-address rather than logged into directly.
+The catalogue is browsable signed out. Everything else — checkout, order history, the AI assistant,
+the admin console — needs a session. There are two doors to one.
 
-| Role | Seeded as | How to become it |
+**1. Google (the real one).** The consent screen is in **Testing** mode, so only allow-listed
+Google accounts get through it. Your address in `ADMIN_EMAILS` makes that account an admin.
+
+**2. Reviewer sign-in (a password, no email).** Because of the above, a reviewer with no
+allow-listed account cannot use door 1 and would see the catalogue and nothing else. So the login
+page also offers a password box — pick **Admin** or **Customer**, enter `DEMO_LOGIN_PASSWORD`, and
+you are signed into the matching seeded account.
+
+| Role | Seeded as | Password sign-in gives you |
 |---|---|---|
-| Customer | `demo.customer@moksha.test` | sign in with any Google account |
-| Admin | `demo.admin@moksha.test` | put your address in `ADMIN_EMAILS`, then sign in |
+| Customer | `demo.customer@moksha.test` | shop, checkout, order history, AI assistant |
+| Admin | `demo.admin@moksha.test` | order queue, status transitions, product editing, stats |
 
-The Google consent screen is in **testing** mode, so only allow-listed Google accounts can sign in.
+> **This is an authentication shortcut, not an authorization bypass**, and the difference is the
+> whole design. It issues the *same* JWT Google sign-in issues, for a real user row with a real
+> role. `require_admin`, the 404-not-403 order-ownership rule and the agent's identity scoping are
+> untouched and still apply — nothing downstream knows which door you came through. A demo
+> **customer** token is still refused by `/admin/orders` with 403, and there is a test that says so.
+>
+> It is off unless `DEMO_LOGIN_PASSWORD` is set (the endpoint 404s), the password is compared in
+> constant time, and it is rate limited to 5 attempts a minute per client. See
+> [D-016](docs/DECISIONS.md).
 
 **Stripe test cards** — any future expiry, any CVC:
 

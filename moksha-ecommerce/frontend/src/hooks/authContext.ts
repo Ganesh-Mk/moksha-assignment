@@ -1,6 +1,6 @@
 import { createContext, use } from "react";
 
-import type { User } from "@/types/api";
+import type { User, UserRole } from "@/types/api";
 
 /**
  * The auth context and its hook, split out from the provider component.
@@ -16,6 +16,15 @@ export interface AuthState {
   isLoading: boolean;
   isAdmin: boolean;
   signIn: (googleIdToken: string) => Promise<User>;
+  /**
+   * The demo door: a shared password, no email. Only reachable when the
+   * backend has `DEMO_LOGIN_PASSWORD` set; otherwise it 404s.
+   *
+   * Deliberately a second method rather than a flag on `signIn` — they take
+   * different credentials and fail for different reasons, and collapsing them
+   * would mean a union argument every caller has to narrow.
+   */
+  signInWithDemoPassword: (password: string, role: UserRole) => Promise<User>;
   signOut: () => void;
 }
 
