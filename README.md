@@ -1,102 +1,89 @@
 # Moksha — AI Full Stack Developer Technical Assignment
 
-Submission for the AI Full Stack Developer technical interview assignment.
-Two independent deliverables in one repository.
+Two deliverables, one repository.
 
-| | Assignment | Stack | Live |
+| | Assignment | Live | Code |
 |---|---|---|---|
-| **1** | [Figma → Responsive React Page](./hydra-curls) | React 19 · TypeScript · Vite · Tailwind v4 · shadcn/ui | **[Live](https://moksha-hydra-curls.vercel.app/)** |
-| **2** | [Mini AI E-Commerce Application](./moksha-ecommerce) | React · TS · Tailwind · shadcn · FastAPI · PostgreSQL · LangGraph · Stripe | **[Live](https://moksha-ecommerce.vercel.app/)** · [API docs](https://moksha-api-mv1j.onrender.com/docs) |
+| **1** | Figma → responsive React page | **[moksha-hydra-curls.vercel.app](https://moksha-hydra-curls.vercel.app/)** | [`hydra-curls/`](./hydra-curls) |
+| **2** | Mini AI e-commerce app | **[moksha-ecommerce.vercel.app](https://moksha-ecommerce.vercel.app/)** · [API docs](https://moksha-api-mv1j.onrender.com/docs) | [`moksha-ecommerce/`](./moksha-ecommerce) |
+
+> **Signing in to assignment 2** — admin password **`moksha@123`**, or sign in with Google as a
+> customer. The AI assistant is the chat button, bottom right. Stripe is in test mode: card
+> `4242 4242 4242 4242` succeeds, `4000 0000 0000 0002` is declined.
+>
+> The API is on free-tier hosting, so the first request may take ~50 seconds to wake.
 
 ---
 
-## Repository layout
+## Documentation
 
-```
-Moksha/
-├── docs/
-│   ├── AI Full Stack Developer Technical Interview Assignment.pdf   # source brief
-│   ├── ASSIGNMENT_BRIEF.md          # distilled requirements + evaluation criteria
-│   └── figma/
-│       ├── DESIGN_SPEC.md           # extracted design tokens, section map, constraints
-│       ├── raw/                     # Figma node tree + image refs (regenerable)
-│       └── reference/               # reference renders for visual diffing
-│
-├── hydra-curls/                     # ASSIGNMENT 1
-│   ├── PLAN.md · CLAUDE.md · PROGRESS.md · README.md
-│   ├── scripts/figma-extract.mjs    # Figma REST API extraction pipeline
-│   └── src/
-│
-├── moksha-ecommerce/                # ASSIGNMENT 2
-│   ├── PLAN.md · CLAUDE.md · PROGRESS.md · README.md
-│   ├── backend/                     # FastAPI + PostgreSQL + LangGraph
-│   ├── frontend/                    # React + TypeScript
-│   └── docs/                        # SYSTEM_DESIGN · DATABASE_SCHEMA · API · DECISIONS
-│
-├── CLAUDE.md                        # shared working agreement
-├── .env.example                     # environment template
-└── .gitignore
-```
+**Assignment 1**
+[README](./hydra-curls/README.md) · [build log](./hydra-curls/PROGRESS.md) ·
+[design spec extracted from Figma](./docs/figma/DESIGN_SPEC.md)
+
+**Assignment 2**
+[README](./moksha-ecommerce/README.md) · [system design](./moksha-ecommerce/docs/SYSTEM_DESIGN.md) ·
+[database schema](./moksha-ecommerce/docs/DATABASE_SCHEMA.md) ·
+[API reference](./moksha-ecommerce/docs/API.md) ·
+[design decisions](./moksha-ecommerce/docs/DECISIONS.md) ·
+[build log](./moksha-ecommerce/PROGRESS.md)
+
+**Shared**
+[the brief, distilled](./docs/ASSIGNMENT_BRIEF.md)
 
 ---
 
 ## Assignment 1 — Hydra Curls
 
-A 1920 × 15249px Figma landing page for *Parachute Advanced — Hydra Curls*, rebuilt as a
-responsive React application.
+A 1920 × 15249px Figma landing page rebuilt as a responsive React app.
 
-- Full design extraction via the Figma REST API (95 image assets, complete node tree)
-- 16 sections, semantic flow layout, fluid `clamp()` type scale
-- Responsive across mobile / tablet / laptop / desktop
-- Performance-first: AVIF/WebP, explicit dimensions, lazy loading below the fold
+React 19 · TypeScript · Vite · Tailwind v4 · shadcn/ui
 
-→ [Setup and details](./hydra-curls/README.md)
+- Design pulled through the Figma REST API — full node tree and 95 image assets — so measurements
+  came from the file rather than from eyeballing a screenshot
+- 16 sections rebuilt with semantic flow layout and a fluid `clamp()` type scale
+- Responsive 320px → 1920px
+- AVIF/WebP with explicit dimensions and lazy loading below the fold
 
-## Assignment 2 — Moksha AI E-Commerce
+Two fonts in the design are licensed and could not ship — the substitutions are explained in the
+[README](./hydra-curls/README.md).
 
-An e-commerce application demonstrating the full chain
-`UI → API → Database → Authentication → Business Logic → AI → Integration`.
+## Assignment 2 — Moksha
+
+An e-commerce app proving the chain `UI → API → Database → Auth → Business logic → AI → Integration`.
+
+React · TypeScript · Tailwind · shadcn/ui · FastAPI · PostgreSQL · LangGraph · Stripe
 
 - Google OAuth → server-verified ID token → application JWT
-- Customer / admin RBAC **enforced server-side**, proved across every route the app exposes
-- Stripe Checkout (test mode) with a signature-verified, idempotent webhook
-- LangGraph support agent whose tools query real product and order data, scoped to the caller —
-  it can fill a cart and cannot take payment
-- Concurrency-safe stock handling; server-authoritative order totals
-- Admin console: catalogue management, order queue, customer accounts, and an activity chart
-
-> **To sign in as a reviewer:** the Google consent screen is in Testing mode, so the login page also
-> takes a password. Use **`moksha@123`** — no email needed. It issues an ordinary admin session;
-> every server-side check still applies. See [D-016](./moksha-ecommerce/docs/DECISIONS.md).
-
-→ [Setup and details](./moksha-ecommerce/README.md)
-→ [System design](./moksha-ecommerce/docs/SYSTEM_DESIGN.md)
-→ [Database schema](./moksha-ecommerce/docs/DATABASE_SCHEMA.md)
-→ [API documentation](./moksha-ecommerce/docs/API.md)
+- Customer/admin RBAC **enforced server-side**, with tests asserting it on every route
+- Stripe Checkout with a signature-verified, idempotent webhook — payment state comes from the
+  webhook, not the browser redirect
+- LangGraph agent whose tools read real product and order data, scoped to the signed-in user. It
+  can fill a cart; it cannot spend anyone's money
+- Order totals recomputed from the database; stock decremented under a row lock so concurrent
+  checkouts cannot oversell
+- Admin console — catalogue, order queue, customers, activity chart
 
 ---
 
-## Quick start
+## Running locally
 
 ```bash
-git clone <repo-url> && cd Moksha
 cp .env.example .env        # fill in your keys
 
-# Assignment 1
 cd hydra-curls && npm install && npm run dev
 
-# Assignment 2
 cd moksha-ecommerce && docker compose up
 ```
 
+Per-assignment setup, environment variables and test commands are in each folder's README.
+
 ---
 
-## AI tools used
+## AI tools
 
-Claude Code, used throughout for the Figma extraction, implementation and tests. The
-architectural decisions were mine: PostgreSQL over MongoDB, the service-layer boundary the AI
-agent shares with the REST API, webhook idempotency, and the agent's identity model.
+Claude Code, used throughout the build. The architecture, design and UI/UX decisions were mine.
 
-## Total development time
+## Time taken
 
 Roughly 12 hours in total, working on both assignments in parallel.
