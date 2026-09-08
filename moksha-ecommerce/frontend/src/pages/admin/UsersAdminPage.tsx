@@ -33,7 +33,9 @@ import type { UserSummary } from "@/types/api";
  */
 export function AdminUsersPage() {
   const [search, setSearch] = useState("");
-  const { data } = useAdminUsers(200);
+  // 100 is the endpoint's ceiling, shared by every paginated route here. Beyond that the
+  // answer is the pagination the endpoint already has, not a bigger page.
+  const { data } = useAdminUsers(100);
   const setActive = useSetUserActive();
   const { user: me } = useAuth();
   const toast = useToast();

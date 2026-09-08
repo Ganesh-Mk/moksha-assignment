@@ -14,8 +14,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useActivitySeries, useAdminUsers, useDashboardStats } from "@/hooks/useOrders";
 import { cn } from "@/lib/cn";
-import { ORDER_STATUS_LABEL, formatMoney } from "@/lib/format";
-import type { OrderStatus } from "@/types/api";
+import { formatMoney } from "@/lib/format";
 
 const RANGES = [
   { days: 7, label: "7d" },
@@ -94,107 +93,11 @@ export function AdminDashboardPage() {
         />
       </div>
 
-      <Card className="mt-4">
-        <CardBody className="p-0">
-          <div className="flex flex-wrap items-end justify-between gap-3 p-4 pb-2">
-            <div className="min-w-0">
-              <p className="label-caps">{headline ? headline.label : "Activity"}</p>
-              {series === undefined ? (
-                <Skeleton className="mt-1.5 h-7 w-28" />
-              ) : headline && total !== null ? (
-                <p className="tnum mt-0.5 text-2xl font-semibold text-ink">
-                  {headline.format(total)}
-                </p>
-              ) : (
-                // In the "All" view there is no single number to headline, so
-                // the legend takes its place. It has to be there anyway to say
-                // which colour is which.
-                <ul className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  {METRICS.map((metric) => (
-                    <li key={metric.key} className="flex items-center gap-1.5">
-                      <span
-                        className="h-0.5 w-3 shrink-0 rounded-full"
-                        style={{ background: metric.color }}
-                        aria-hidden
-                      />
-                      <span className="text-xs text-ink-muted">{metric.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-1 text-2xs text-ink-subtle">
-                {headline
-                  ? headline.kind === "flow"
-                    ? `Total over the last ${days} days`
-                    : "Running total, today"
-                  : "Rupees on the left, counts on the right — not the same scale."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              <SegmentedControl
-                label="Metric"
-                options={METRIC_OPTIONS}
-                value={selection}
-                onChange={setSelection}
-              />
-              <SegmentedControl
-                label="Range"
-                options={RANGES.map((r) => ({ value: r.days, label: r.label }))}
-                value={days}
-                onChange={setDays}
-              />
-            </div>
-          </div>
-
-          <div className="px-4 pb-3">
-            {series === undefined ? (
-              <Skeleton className="h-[220px] w-full" />
-            ) : (
-              <ActivityChart
-                points={series.points}
-                metrics={shown}
-                // Dimmed while a new range is in flight. The old line stays put
-                // rather than blanking, so switching ranges reads as the same
-                // chart changing rather than a new one arriving.
-                className={cn(
-                  "transition-opacity duration-[--dur-base]",
-                  seriesFetching && "opacity-60",
-                )}
-              />
-            )}
-          </div>
-        </CardBody>
-      </Card>
-
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader
-            title="Orders by status"
-            description="Revenue counts only paid and fulfilled — a pending order is not money."
-          />
-          <CardBody className="flex flex-col gap-2">
-            {loading ? (
-              <Skeleton className="h-20 w-full" />
-            ) : data.orders_by_status.length === 0 ? (
-              <p className="text-xs text-ink-subtle">No orders yet.</p>
-            ) : (
-              data.orders_by_status.map((row) => (
-                <div key={row.status} className="flex items-center justify-between gap-3">
-                  <Badge tone="neutral">
-                    {ORDER_STATUS_LABEL[row.status as OrderStatus] ?? row.status}
-                  </Badge>
-                  <span className="tnum text-sm font-medium text-ink">{row.count}</span>
-                </div>
-              ))
-            )}
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader
             title="Top customers"
-            description="Biggest spender first. Spend counts paid and fulfilled orders only, so it always agrees with the revenue above."
+            description="Biggest spender first, counting paid and fulfilled orders only."
             action={
               <Link
                 to="/admin/users"
@@ -261,6 +164,69 @@ export function AdminDashboardPage() {
           </CardBody>
         </Card>
       </div>
+
+      <Card className="mt-4">
+        <CardBody className="p-0">
+          <div className="flex flex-wrap items-end justify-between gap-3 p-4 pb-2">
+            <div className="min-w-0">
+              <p className="label-caps">{headline ? headline.label : "Activity"}</p>
+              {series === undefined ? (
+                <Skeleton className="mt-1.5 h-7 w-28" />
+              ) : headline && total !== null ? (
+                <>
+                  <p className="tnum mt-0.5 text-2xl font-semibold text-ink">
+                    {headline.format(total)}
+                  </p>
+                  <p className="mt-1 text-2xs text-ink-subtle">
+                    {headline.kind === "flow"
+                      ? `Total over the last ${days} days`
+                      : "Running total, today"}
+                  </p>
+                </>
+              ) : (
+                // No headline in the "All" view: there is no single number that
+                // means anything across four incommensurable series. The key is
+                // the tooltip, which names every series next to its colour.
+                <p className="mt-1 text-2xs text-ink-subtle">Last {days} days</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <SegmentedControl
+                label="Metric"
+                options={METRIC_OPTIONS}
+                value={selection}
+                onChange={setSelection}
+              />
+              <SegmentedControl
+                label="Range"
+                options={RANGES.map((r) => ({ value: r.days, label: r.label }))}
+                value={days}
+                onChange={setDays}
+              />
+            </div>
+          </div>
+
+          <div className="px-4 pb-3">
+            {series === undefined ? (
+              <Skeleton className="h-[220px] w-full" />
+            ) : (
+              <ActivityChart
+                points={series.points}
+                metrics={shown}
+                // Dimmed while a new range is in flight. The old line stays put
+                // rather than blanking, so switching ranges reads as the same
+                // chart changing rather than a new one arriving.
+                className={cn(
+                  "transition-opacity duration-[--dur-base]",
+                  seriesFetching && "opacity-60",
+                )}
+              />
+            )}
+          </div>
+        </CardBody>
+      </Card>
+
     </Container>
   );
 }

@@ -2,6 +2,7 @@ import { useId, useMemo, useState } from "react";
 
 import type { Metric } from "@/components/admin/metrics";
 import { cn } from "@/lib/cn";
+import { monotoneCubicPath } from "@/lib/monotoneCubic";
 import type { TimeSeriesPoint } from "@/types/api";
 
 /**
@@ -21,6 +22,10 @@ import type { TimeSeriesPoint } from "@/types/api";
  * **Axis labels are HTML, not `<text>`.** The SVG has a fixed viewBox and scales to its container,
  * which scales everything inside it — an 11px label became 23px on a wide screen. Positioning the
  * labels outside the SVG keeps them at a real CSS size at every width.
+ *
+ * **The curve is monotone cubic, not Catmull-Rom** (`lib/monotoneCubic.ts`). Catmull-Rom overshot
+ * a step and drew negative customers on the way up to two. The replacement cannot leave the range
+ * of its data, and there is a test that samples the curve and says so.
  */
 
 // A fixed viewBox: the box is fixed and the SVG scales as a block, so the stroke stays even.
@@ -28,38 +33,6 @@ const W = 720;
 const H = 200;
 const PAD = { top: 10, right: 4, bottom: 8, left: 4 };
 const GRID = [0, 0.25, 0.5, 0.75, 1];
-
-/**
- * Catmull-Rom through the points, converted to cubic béziers.
- *
- * Why not `L` between points: thirty daily readings as a polyline reads as noise. Why not a plain
- * quadratic smoothing: it does not pass through the data points, so the curve stops being the
- * data. Catmull-Rom interpolates — every point is on the line — while still being smooth, which is
- * the only kind of smoothing a chart is allowed to do.
- *
- * The 1/6 coefficient is a 0.5 tension, deliberately: at 1.0 the curve overshoots a sharp spike
- * and invents values that never happened, including negative revenue.
- */
-function smoothPath(points: { x: number; y: number }[]): string {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0]!.x} ${points[0]!.y}`;
-
-  let d = `M ${points[0]!.x} ${points[0]!.y}`;
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const p0 = points[i - 1] ?? points[i]!;
-    const p1 = points[i]!;
-    const p2 = points[i + 1]!;
-    const p3 = points[i + 2] ?? p2;
-
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
-
-    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
-  }
-  return d;
-}
 
 /** A round number at or above `value`, so the axis reads 400 rather than 387. */
 function niceCeiling(value: number): number {
@@ -193,7 +166,7 @@ export function ActivityChart({
                 supposed to support. */}
             {soleSeries ? (
               <path
-                d={`${smoothPath(soleSeries.coords)} L ${soleSeries.coords.at(-1)?.x ?? 0} ${chart.baseline} L ${soleSeries.coords[0]?.x ?? 0} ${chart.baseline} Z`}
+                d={`${monotoneCubicPath(soleSeries.coords)} L ${soleSeries.coords.at(-1)?.x ?? 0} ${chart.baseline} L ${soleSeries.coords[0]?.x ?? 0} ${chart.baseline} Z`}
                 fill={`url(#${gradientId})`}
               />
             ) : null}
@@ -215,7 +188,7 @@ export function ActivityChart({
                 // draw-on animation — a redraw, rather than a silent swap the
                 // eye can miss.
                 key={`${metric.key}-${metrics.length}`}
-                d={smoothPath(coords)}
+                d={monotoneCubicPath(coords)}
                 fill="none"
                 stroke={metric.color}
                 // Thin, so four lines crossing each other stay legible.
