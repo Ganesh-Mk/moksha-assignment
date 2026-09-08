@@ -261,7 +261,7 @@ export function ProductShowcase() {
           chord={1400}
           sag={240}
           fontSize={72}
-          className="pointer-events-none relative z-10 mx-auto -mt-[8.5%] w-[86%] max-w-[98.25rem] pb-[3%] text-black/45"
+          className="pointer-events-none relative z-10 mx-auto -mt-[11%] w-[86%] max-w-[98.25rem] pb-[9.5%] text-black/45"
         >
           {curvedArcText}
         </CurvedText>
