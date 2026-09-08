@@ -149,10 +149,14 @@ export function Testimonials() {
                 deliberate sliver of the third, which also tells you there is more to scroll. */}
             <CarouselContent className="-mt-4 h-[41rem] md:h-[37rem] lg:h-[52rem] xl:h-[45rem] 2xl:h-[41rem]">
               {testimonials.items.map((item, index) => (
-                <CarouselItem key={index} className="basis-auto pt-4">
+                <CarouselItem key={index} className="basis-auto px-2 pt-4">
                   {/* No border: the reference card is a flat dark fill on the cyan. The rule that was
                         here read as an outline the design does not have. */}
-                  <figure className="bg-ink w-full max-w-[34rem] rounded-[1.25rem] p-6 md:p-8">
+                  {/* The cards are not axis-aligned in the design — each sits a degree or so off square,
+                      which is what stops the column reading as a stack of identical boxes. Small
+                      enough to look deliberate rather than broken, and applied to the figure so
+                      the carousel still measures an upright box for its slide maths. */}
+                  <figure className="bg-ink w-full max-w-[34rem] -rotate-[1.2deg] rounded-[1.25rem] p-6 md:p-8">
                     {/* aria-label is prohibited on a plain <div>, and adding role="img" purely
                         to carry one trades an accessibility violation for a lint one. The
                         rating is stated as text and the stars are marked decorative. */}
@@ -205,7 +209,7 @@ export function Testimonials() {
       <SoftWave
         fillClassName="fill-page"
         shape="swoop"
-        className="absolute inset-x-0 bottom-0 h-[clamp(3rem,8vw,9rem)]"
+        className="absolute inset-x-0 bottom-0 h-[clamp(5rem,13vw,15rem)]"
       />
     </section>
   )

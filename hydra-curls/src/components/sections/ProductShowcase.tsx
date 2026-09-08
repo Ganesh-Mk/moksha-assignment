@@ -117,7 +117,7 @@ export function ProductShowcase() {
         </div>
 
         <div
-          className="relative z-10 px-5 pt-10 pb-[4.4%] md:pt-16"
+          className="relative z-10 px-5 pt-6 pb-[1%] md:pt-10"
           onPointerEnter={() => setEngaged(true)}
           onPointerLeave={() => setEngaged(false)}
           onFocusCapture={() => setEngaged(true)}
@@ -149,7 +149,7 @@ export function ProductShowcase() {
                       width-constrained. Sizing by width instead lets the tall shampoo bottle
                       drive the whole band and stretches the purple well past its designed
                       depth, so the slide fixes a height and the bottles fit inside it. */}
-                  <div className="relative flex h-[52vw] max-h-[35.75rem] items-end justify-center sm:h-[34vw]">
+                  <div className="relative flex h-[46vw] max-h-[31rem] items-end justify-center sm:h-[30vw]">
                     <Picture
                       asset={product.image}
                       className={cn(
@@ -196,13 +196,13 @@ export function ProductShowcase() {
             // aria-live so the name is announced when the slide changes; without it a
             // keyboard user hears nothing after pressing the next button.
             aria-live="polite"
-            className="text-product mt-8 text-center font-medium text-white"
+            className="text-product mt-5 text-center font-medium text-white"
           >
             {activeProduct?.name}
           </p>
 
           {/* Thumbnail selectors. Real buttons, so the range is reachable without dragging. */}
-          <ul className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-4 md:mt-10">
+          <ul className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-4 md:mt-6">
             {products.map((product, index) => (
               <li key={product.name}>
                 <button
@@ -230,11 +230,11 @@ export function ProductShowcase() {
           field carries on beneath the purple circle and hands over to white along a curve, with
           the arc crossing that boundary. Rendering the text on flat white lost the shape
           entirely and left the line floating in a gap, which is what it looked like. */}
-      {/* Some top padding is still needed — CurvedText renders `overflow-visible` and the
-          glyphs at the ends of a sagging arc sit above the SVG's own box — but only enough to
-          clear the thumbnails. The reference tucks this line directly under the circle's rim,
-          not a screen below it. */}
-      <div className="bg-page relative pt-[1.5%]">
+      {/* The band is pulled up over the disc rather than starting beneath it. CurvedText renders
+          `overflow-visible`, so the glyphs at the ends of the arc already sit well above the
+          SVG's own box — the negative margin uses that overhang to tuck the line right under the
+          rim, which is where the reference has it. */}
+      <div className="bg-page relative -mt-[1.5%] pt-0">
         <SoftWave
           fillClassName="fill-brand-cyan-soft"
           className="absolute inset-x-0 bottom-0 h-[clamp(3rem,8vw,9rem)]"

@@ -69,7 +69,7 @@ export function DesignedForYou() {
           stops where the cyan begins. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[clamp(5rem,18vw,20rem)] [clip-path:polygon(0_0,100%_0,100%_5%,0_100%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[clamp(7rem,24vw,27rem)] [clip-path:polygon(0_0,100%_0,100%_5%,0_100%)]"
       >
         <div className="bg-page absolute inset-0" />
         <Picture

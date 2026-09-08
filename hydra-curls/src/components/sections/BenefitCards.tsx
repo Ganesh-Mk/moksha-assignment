@@ -80,6 +80,15 @@ export function BenefitCards() {
               card.showLineup ? 'justify-start' : 'justify-center',
             )}
           >
+            {/* The card's top edge ripples in the design rather than cutting straight across.
+                Carved rather than drawn: a page-coloured wave laid over the top of the card,
+                flipped so it fills the upper part of its own box. The card keeps a plain
+                rectangle for layout and only its paint changes shape. */}
+            <SoftWave
+              fillClassName="fill-page"
+              className="absolute inset-x-0 top-0 z-10 h-[clamp(1.5rem,3vw,3.5rem)] -scale-y-100"
+            />
+
             {/* The wavy texture sits at 2% opacity in Figma — barely perceptible, and the
                 reason these cards do not read as flat blocks of colour. Dropped below `md`,
                 where it costs ~47KB on a phone to render something invisible. */}

@@ -23,21 +23,23 @@ export function WavyPanelEdge({ side, fillClassName, className }: WavyPanelEdgeP
     <svg
       aria-hidden="true"
       focusable="false"
-      viewBox="0 0 40 800"
+      viewBox="0 0 120 800"
       preserveAspectRatio="none"
       className={cn(
         // The path now runs the full 800 of its own box. It used to stop at 700, which left the
         // bottom eighth of every seam unpainted — the sliver that appeared to escape the row.
-        'pointer-events-none absolute inset-y-0 hidden w-10 lg:block',
+        'pointer-events-none absolute inset-y-0 hidden w-[clamp(2.5rem,5vw,7.5rem)] lg:block',
         // Pulled back half its own width so the ripple is centred on the join. Sitting
         // wholly outside the panel put it left of the seam on one row and right of it on the
         // next, which is what made consecutive rows look 40px out of step.
-        side === 'left' ? 'right-full -mr-5' : 'left-full -ml-5 -scale-x-100',
+        side === 'left'
+          ? 'right-full -mr-[clamp(1.25rem,2.5vw,3.75rem)]'
+          : 'left-full -ml-[clamp(1.25rem,2.5vw,3.75rem)] -scale-x-100',
         className,
       )}
     >
       <path
-        d="M40 0H18C30 80 6 160 20 240S6 400 22 480 8 640 18 720 30 780 20 800h20z"
+        d="M120 0H54C96 84 10 168 46 250S6 414 52 496 4 656 44 738 88 776 60 800h60z"
         className={fillClassName}
       />
     </svg>

@@ -23,6 +23,24 @@ CLS at 0 every single time — and the top of the process list during the low ru
 sessions, two VS Code windows and a browser. Trust LCP and CLS; treat a single mobile score as
 noise unless the machine is idle.
 
+## Fifth review round
+
+Spacing and shape, mostly measured rather than eyeballed:
+
+- Product row lifted (shorter slide, tighter gaps) and the script arc pulled up over the disc with
+  a negative margin, using CurvedText's own ink overhang. Tuned against a measurement, not by eye:
+  the first attempt overlapped the thumbnails by 48px; it now clears them by 31.
+- The disc's pale rims no longer cut flat — see the fourth round.
+- **Testimonial cards are rotated ~1.2°**, which is what the reference does and what stops the
+  column reading as a stack of identical boxes. The rotation is on the figure so the carousel
+  still measures an upright box for its slide maths.
+- **The benefit cards' top edges ripple.** Carved rather than drawn: a page-coloured wave laid
+  over the top of each card, so the card keeps a plain rectangle for layout and only its paint
+  changes shape.
+- Hair-type diagonal deepened so the line crosses the medallion's middle.
+- Learn & Grow panel seams roughly tripled in amplitude — the reference's waves are large.
+- Testimonial swoop raised in the band.
+
 ## Fourth review round
 
 **A JSX comment shipped as visible page text.** Three paragraphs of reasoning about hover targets
