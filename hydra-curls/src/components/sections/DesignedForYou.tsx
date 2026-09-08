@@ -7,6 +7,7 @@ import { Picture } from '@/components/primitives/Picture'
 import { SectionHeading } from '@/components/primitives/SectionHeading'
 import { decorativeArcText, hairTypes } from '@/content/sections'
 import { site } from '@/content/site'
+import { cn } from '@/lib/utils'
 
 /**
  * The navy medallion above the heading: a 239px disc with the brand name running right around
@@ -86,7 +87,7 @@ export function DesignedForYou() {
       <ul className="xl:px-gutter mt-14 grid gap-6 px-5 md:grid-cols-2 md:px-10 lg:grid-cols-3">
         {hairTypes.items.map((type, index) => (
           <li key={type.label} data-reveal="" style={{ '--reveal-i': index } as CSSProperties}>
-            <article className="group relative isolate aspect-[619/774] overflow-hidden rounded-lg">
+            <article className="group relative isolate aspect-[619/774] overflow-hidden rounded-lg transition-transform duration-500 ease-out hover:-translate-y-1.5 motion-reduce:hover:translate-y-0">
               <Picture
                 asset={type.image}
                 className="absolute inset-0 -z-10 h-full w-full"
@@ -98,18 +99,43 @@ export function DesignedForYou() {
                   the heading is screen-reader only — painting it again would double both. */}
               <h3 className="sr-only">{type.label}</h3>
 
+              {/* A scrim that darkens the whole card as the panel rises, so the panel arrives
+                  on a surface prepared for it instead of cutting a hard rectangle across a
+                  bright photograph. */}
+              <div
+                aria-hidden="true"
+                className="from-brand-navy-deep/85 via-brand-navy-deep/35 pointer-events-none absolute inset-0 bg-gradient-to-t to-transparent opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
+              />
+
               {/* Hidden with opacity rather than `display: none`, so the characteristics stay
                   in the accessibility tree and are announced even though the resting card —
-                  matching the reference render — does not show them. */}
-              <div className="bg-brand-blue absolute inset-x-0 bottom-0 translate-y-full p-6 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
+                  matching the reference render — does not show them.
+
+                  It was a flat blue block that snapped in with no transition at all: the
+                  utilities set the end state but nothing described how to get there. It now
+                  rises and fades on the same curve as the scrim, over a blurred dark glass
+                  panel that keeps the artwork readable underneath. */}
+              <div
+                className={cn(
+                  'absolute inset-x-0 bottom-0 p-6',
+                  'bg-brand-navy-deep/70 border-t border-white/15 backdrop-blur-md',
+                  'translate-y-full opacity-0 transition-[transform,opacity] duration-500 ease-out',
+                  'group-hover:translate-y-0 group-hover:opacity-100',
+                  'group-focus-within:translate-y-0 group-focus-within:opacity-100',
+                  'motion-reduce:transition-none',
+                )}
+              >
                 <p className="text-body leading-relaxed text-white">{type.summary}</p>
-                <p className="text-micro mt-6 tracking-[0.08em] text-white/85">
+                <p className="text-micro text-brand-cyan mt-6 tracking-[0.08em]">
                   {hairTypes.characteristicsLabel}
                 </p>
                 <ul className="mt-2 space-y-2">
                   {type.characteristics.map((item) => (
                     <li key={item} className="text-body flex items-center gap-2 text-white">
-                      <ChevronRight aria-hidden="true" className="size-5 shrink-0" />
+                      <ChevronRight
+                        aria-hidden="true"
+                        className="text-brand-cyan size-5 shrink-0"
+                      />
                       {item}
                     </li>
                   ))}

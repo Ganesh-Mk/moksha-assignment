@@ -2,8 +2,9 @@ import { Droplet, Sparkles } from 'lucide-react'
 
 import { Container } from '@/components/layout/Container'
 import { Section } from '@/components/layout/Section'
+import { SoftWave } from '@/components/primitives/SoftWave'
 import { Eyebrow } from '@/components/primitives/Eyebrow'
-import { Picture } from '@/components/primitives/Picture'
+import { HydrationClock } from '@/components/primitives/HydrationClock'
 import { SectionHeading } from '@/components/primitives/SectionHeading'
 import { promise } from '@/content/sections'
 
@@ -20,7 +21,11 @@ const FEATURE_ICONS = [Droplet, Sparkles]
  */
 export function HydraCurlsPromise() {
   return (
-    <Section aria-labelledby="promise-heading" className="bg-brand-cyan-soft">
+    <Section
+      aria-labelledby="promise-heading"
+      // Extra bottom room so the hand-over curve overlays padding rather than copy.
+      className="bg-brand-cyan-soft pb-[clamp(4.5rem,8vw,10rem)]"
+    >
       <Container>
         <Eyebrow>{promise.eyebrow}</Eyebrow>
         <SectionHeading id="promise-heading" lines={promise.heading} className="mt-6 text-center" />
@@ -69,15 +74,7 @@ export function HydraCurlsPromise() {
           {/* The stat. Value and unit are one semantic pair, so they are a description list
               rather than two loose blocks — a screen reader announces "48 hours", not "48". */}
           <div className="relative flex flex-col items-center text-center">
-            <div className="relative w-[10.125rem] max-w-full">
-              <Picture asset="icon-arc" alt="" className="w-full" sizes="162px" />
-              <Picture
-                asset="icon-clock"
-                alt=""
-                className="absolute inset-x-0 top-[3%] mx-auto w-[93%]"
-                sizes="150px"
-              />
-            </div>
+            <HydrationClock className="w-[10.125rem] max-w-full" />
 
             <dl className="relative mt-2">
               <dt className="sr-only">{promise.stat.unit}</dt>
@@ -86,7 +83,10 @@ export function HydraCurlsPromise() {
               </dd>
               <p
                 aria-hidden="true"
-                className="bg-brand-cyan text-body absolute -right-6 bottom-3 -rotate-12 rounded-[0.625rem] px-3 py-1.5 text-white"
+                // Figma sets this tag white-on-cyan, which measures 1.75:1. Darkening the tag
+                // would lose the brand colour, so the label flips to ink instead: the cyan is
+                // reproduced exactly and the text clears AA with room to spare.
+                className="bg-brand-cyan text-body text-ink absolute -right-6 bottom-3 -rotate-12 rounded-[0.625rem] px-3 py-1.5 font-medium"
               >
                 {promise.stat.unit}
               </p>
@@ -98,6 +98,11 @@ export function HydraCurlsPromise() {
           </div>
         </div>
       </Container>
+
+      {/* The band hands over to the ingredients with a curve, which is what the reference
+          render shows; a plain background change leaves a straight seam the design does not
+          have. The wave carries the *next* section's colour. */}
+      <SoftWave fillClassName="fill-page" className="absolute inset-x-0 bottom-0" />
 
       {/* The hand-drawn arrow linking the copy to the stat. Decorative, and dropped below `lg`
           where the two sit stacked and an arrow pointing right would be nonsense. */}

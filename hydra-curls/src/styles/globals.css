@@ -383,6 +383,26 @@
   }
 }
 
+/* The hydration clock's moving parts. Rotation only, so all three run on the compositor. */
+@keyframes clock-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility clock-ring {
+  animation: clock-spin 60s linear infinite;
+}
+
+@utility clock-minute {
+  animation: clock-spin 4s linear infinite;
+}
+
+@utility clock-hour {
+  /* Forty-eight seconds for forty-eight hours — the claim the stat beside it is making. */
+  animation: clock-spin 48s linear infinite;
+}
+
 /* Honoured globally rather than per-component, so a Phase 2 animation cannot forget it. */
 @media (prefers-reduced-motion: reduce) {
   html {

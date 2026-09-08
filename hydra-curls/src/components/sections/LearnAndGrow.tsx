@@ -67,7 +67,15 @@ export function LearnAndGrow() {
               </p>
               <a
                 href="#products"
-                className="text-body mt-8 inline-flex min-h-11 w-fit items-center gap-3 text-white underline-offset-4 hover:underline"
+                // Same sweeping underline and travelling arrow as BrandButton's `link`
+                // variant, in white for the coloured panels.
+                className={cn(
+                  'text-body relative mt-8 inline-flex min-h-11 w-fit items-center gap-3 text-white',
+                  'after:absolute after:inset-x-0 after:bottom-2 after:h-px after:origin-left after:bg-current',
+                  'after:scale-x-0 after:transition-transform after:duration-300 hover:after:scale-x-100',
+                  '[&_svg]:transition-transform [&_svg]:duration-300 hover:[&_svg]:translate-x-1.5',
+                  'motion-reduce:hover:[&_svg]:translate-x-0',
+                )}
               >
                 {item.cta}
                 <ArrowRight aria-hidden="true" className="size-6" />

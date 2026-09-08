@@ -75,6 +75,9 @@
           var nodes = document.querySelectorAll('[data-reveal]:not([data-revealed])')
           for (var i = 0; i < nodes.length; i++) io.observe(nodes[i])
           sweep()
+          // Counters are registered here, not at script time: this whole IIFE runs inside
+          // <head>, where the body does not exist yet and querying for them matches nothing.
+          observeCounters()
         }
 
         /*
@@ -120,18 +123,19 @@
           unit and "05" keeps its padding, because the digits are swapped back into the string
           they came from rather than replacing it.
         */
-        var counters = document.querySelectorAll('[data-countup]')
-        if (counters.length) {
-          var cio = new IntersectionObserver(
-            function (entries) {
-              for (var i = 0; i < entries.length; i++) {
-                if (!entries[i].isIntersecting) continue
-                count(entries[i].target)
-                cio.unobserve(entries[i].target)
-              }
-            },
-            { threshold: 0.4 }
-          )
+        var cio = new IntersectionObserver(
+          function (entries) {
+            for (var i = 0; i < entries.length; i++) {
+              if (!entries[i].isIntersecting) continue
+              count(entries[i].target)
+              cio.unobserve(entries[i].target)
+            }
+          },
+          { threshold: 0.4 }
+        )
+
+        function observeCounters() {
+          var counters = document.querySelectorAll('[data-countup]')
           for (var c = 0; c < counters.length; c++) cio.observe(counters[c])
         }
 

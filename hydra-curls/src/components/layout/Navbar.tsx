@@ -29,13 +29,15 @@ const linkClass = (isCurrent: boolean) =>
  * bar without either wrapping or shrinking below a usable tap target.
  */
 export function Navbar() {
-  // `hidden` drives the hide-on-scroll-down / show-on-scroll-up behaviour. It is state rather
-  // than a direct style write so React owns the DOM it hydrated.
+  // `hidden` drives hide-on-scroll-down / show-on-scroll-up; `atTop` keeps the bar transparent
+  // over the hero. Both are state rather than direct style writes so React owns the DOM it
+  // hydrated.
   const [hidden, setHidden] = useState(false)
+  const [atTop, setAtTop] = useState(true)
   const lastY = useRef(0)
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     let ticking = false
     const onScroll = () => {
@@ -45,9 +47,10 @@ export function Navbar() {
       // fast scroll cannot turn this into a stream of forced synchronous layouts.
       requestAnimationFrame(() => {
         const y = window.scrollY
+        setAtTop(y < 40)
         // The 8px deadband stops trackpad jitter from flickering the bar; below 120px the bar
         // always shows, so it is never hidden while the reader is still at the top.
-        if (Math.abs(y - lastY.current) > 8) {
+        if (!reduced && Math.abs(y - lastY.current) > 8) {
           setHidden(y > lastY.current && y > 120)
           lastY.current = y
         }
@@ -55,78 +58,99 @@ export function Navbar() {
       })
     }
 
+    onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   return (
-    <header
-      className={cn(
-        'bg-ink/95 fixed top-0 z-30 w-full border-b border-white/35 backdrop-blur-sm',
-        'transition-transform duration-300 will-change-transform',
-        hidden ? '-translate-y-full' : 'translate-y-0',
-      )}
-    >
-      <Container className="flex h-[4.375rem] items-center justify-between md:h-25">
-        <a href="#top" className="flex items-center" aria-label={`${site.brand} ${site.product}`}>
-          <Picture
-            asset="logo-lockup"
-            alt=""
-            className="block w-[7.5rem] md:w-42"
-            sizes="(min-width: 768px) 168px, 120px"
-            priority
-          />
-        </a>
+    // The outer element is fixed but never transforms, so the reading-progress bar it carries
+    // stays on screen when the bar itself slides away. Nesting the two was the bug: the
+    // progress bar rode up with the header and vanished exactly when it was most useful.
+    <header className="fixed top-0 z-30 w-full">
+      <div
+        className={cn(
+          'w-full transition-[transform,background-color,border-color,backdrop-filter] duration-300 will-change-transform',
+          // Transparent over the hero so the two read as one surface — the hero's own artwork
+          // becomes the bar's background instead of a navy strip butting against purple. The
+          // solid state returns as soon as the reader leaves the top.
+          atTop
+            ? 'border-b border-transparent bg-transparent'
+            : 'bg-ink/90 border-b border-white/20 backdrop-blur-md',
+          hidden ? '-translate-y-full' : 'translate-y-0',
+        )}
+      >
+        <Container className="flex h-[4.375rem] items-center justify-between md:h-25">
+          <a href="#top" className="flex items-center" aria-label={`${site.brand} ${site.product}`}>
+            <Picture
+              asset="logo-lockup"
+              alt=""
+              className="block w-[7.5rem] md:w-42"
+              sizes="(min-width: 768px) 168px, 120px"
+              priority
+            />
+          </a>
 
-        {/* Absolutely centred rather than flex-centred: the logo and the menu button have
+          {/* Absolutely centred rather than flex-centred: the logo and the menu button have
             different widths, so a plain `justify-between` would push the links off-axis. */}
-        <nav aria-label="Main" className="absolute left-1/2 hidden -translate-x-1/2 lg:block">
-          <ul className="flex items-center gap-16">
-            {navLinks.map((link, index) => (
-              <li key={link.label}>
-                <a
-                  href={link.href}
-                  className={linkClass(index === 0)}
-                  aria-current={index === 0 ? 'page' : undefined}
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+          <nav aria-label="Main" className="absolute left-1/2 hidden -translate-x-1/2 lg:block">
+            <ul className="flex items-center gap-16">
+              {navLinks.map((link, index) => (
+                <li key={link.label}>
+                  <a
+                    href={link.href}
+                    className={linkClass(index === 0)}
+                    aria-current={index === 0 ? 'page' : undefined}
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
-        <Sheet>
-          <SheetTrigger
-            className="flex size-11 items-center justify-center text-white lg:hidden"
-            aria-label="Open menu"
-          >
-            <Menu aria-hidden="true" className="size-6" />
-          </SheetTrigger>
-          <SheetContent side="right" className="bg-ink w-72 border-l-white/20 text-white">
-            <SheetTitle className="text-body px-6 pt-6 text-white/55">Menu</SheetTitle>
-            <nav aria-label="Mobile">
-              <ul className="flex flex-col gap-2 px-6 py-4">
-                {navLinks.map((link, index) => (
-                  <li key={link.label}>
-                    <a href={link.href} className={linkClass(index === 0)}>
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </SheetContent>
-        </Sheet>
-      </Container>
+          <Sheet>
+            <SheetTrigger
+              className="flex size-11 items-center justify-center text-white lg:hidden"
+              aria-label="Open menu"
+            >
+              <Menu aria-hidden="true" className="size-6" />
+            </SheetTrigger>
+            <SheetContent side="right" className="bg-ink w-72 border-l-white/20 text-white">
+              <SheetTitle className="text-body px-6 pt-6 text-white/55">Menu</SheetTitle>
+              <nav aria-label="Mobile">
+                <ul className="flex flex-col gap-2 px-6 py-4">
+                  {navLinks.map((link, index) => (
+                    <li key={link.label}>
+                      <a href={link.href} className={linkClass(index === 0)}>
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </Container>
+      </div>
 
-      {/* Reading progress. Driven by a scroll-linked CSS animation, so it costs no JavaScript
-          and runs on the compositor; browsers without `animation-timeline` just leave it at
-          zero width, which is why it is decorative. */}
+      {/* Reading progress — a sibling of the sliding bar, not a child, so it stays put while
+          the bar hides. Driven by a scroll-linked CSS animation, so it costs no JavaScript and
+          runs on the compositor; browsers without `animation-timeline` just leave it at zero
+          width, which is why it is decorative. */}
       <div
         aria-hidden="true"
-        className="bg-brand-cyan scroll-progress absolute inset-x-0 bottom-0 h-0.5"
-      />
+        className={cn(
+          'bg-brand-cyan/25 absolute inset-x-0 top-0 h-[0.1875rem]',
+          'transition-transform duration-300',
+          // Normally it rides on the bar's lower edge. When the bar slides away it travels up
+          // with it and parks against the top of the viewport, rather than being left hanging
+          // in the space the bar used to occupy.
+          hidden ? 'translate-y-0' : 'translate-y-[4.375rem] md:translate-y-25',
+        )}
+      >
+        <div className="bg-brand-cyan scroll-progress h-full w-full" />
+      </div>
     </header>
   )
 }

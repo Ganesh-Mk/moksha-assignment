@@ -5,21 +5,56 @@
 
 ## Status
 
-**Phases 1, 2 and 3 are complete.** All 16 sections built, motion added, README written.
+**Phases 1–3 complete, plus a review round against the deployed site.**
 
-Outstanding: the live Vercel URL needs pasting into `README.md` (Deployment) and the root
-`README.md` table. The deploy exists; its URL was not available when this was written.
+**Live: <https://moksha-hydra-curls.vercel.app>**
 
 |         | Performance | Accessibility | Best practices | SEO |
 | ------- | ----------- | ------------- | -------------- | --- |
-| Desktop | 98–100      | 96            | 100            | 100 |
-| Mobile  | 87–89       | 96            | 100            | 100 |
+| Desktop | 98–99       | **100**       | 100            | 100 |
+| Mobile  | 92–99       | **100**       | 100            | 100 |
 
-LCP 1.0s desktop / 2.3s mobile · **CLS 0** · rendered page 15,005px against Figma's 15,249 (1.6%)
-· no horizontal scroll and no sub-44px tap target at 320/375/768/1024/1440/1920.
+LCP 1.0s desktop / 2.3s mobile · **CLS 0** · page 15,250px against Figma's 15,249 · no horizontal
+scroll and no sub-44px tap target at 320/375/768/1024/1440/1920.
 
-Mobile performance is short of the ≥95 target in `PLAN.md`. Reasons and the three optimisations
-that were tried and rejected are below.
+Mobile perf reads 87–89 when another heavy process shares the machine and 98–99 when it does not;
+LCP and CLS are stable either way. The earlier "mobile is stuck at 89" conclusion was mostly
+measuring CPU contention, not the page.
+
+## Review round (fixes against the deployed build)
+
+Twelve issues raised off screenshots of the live site. What each turned out to be:
+
+| #   | Reported                                             | Actual cause                                                                                                                                                                                                  |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Progress bar vanished with the navbar                | The bar was a _child_ of the sliding header, so it rode up with it. Now a sibling of the sliding element, and it travels to the top of the viewport when the bar hides.                                       |
+| 2   | Carousel glow cut off at top and sides               | The halo was inside each slide, where the carousel's own `overflow-hidden` sliced the blur into a rectangle. One glow on the section behind it — the carousel is centre-aligned, so the lit spot never moves. |
+| 3   | Arc section "looks weird"                            | The reference puts the script on a pale cyan field that hands over to white along a curve. It was rendering on flat white, so the line floated in a gap.                                                      |
+| 4   | Clock not animating                                  | It was two flat PNGs with the hands baked in. Redrawn as SVG: the hands sweep, the long one every 4s and the short one every 48s.                                                                             |
+| 5   | Section edges straight, should have "design borders" | Real fidelity miss — several boundaries in the reference are soft curves. Added a `SoftWave` primitive and applied it.                                                                                        |
+| 6   | Ingredient card hover "fluctuating"                  | The `<li>` carried both `data-reveal` and the hover transform. Both animate `transform`, so the hover inherited the reveal's 0.7s duration _and_ its stagger delay. Split onto separate elements.             |
+| 7   | Only two identical reviews                           | Figma ships one quote twice, so the design's own buttons were permanently disabled. Four more authored; the viewport is now a measured window showing two whole cards and a faded peek at the third.          |
+| 8   | Hair-type hover "awful"                              | A flat blue block with **no transition classes at all** — the utilities set the end state and nothing described getting there. Now a scrim plus a blurred dark-glass panel on a 500ms ease.                   |
+| 9   | Explore Now needs a hover                            | Sweeping underline and a travelling arrow, shared with `BrandButton`'s link variant.                                                                                                                          |
+| 10  | Stat numbers not counting up                         | The count-up registered its observer at script time, inside `<head>`, where the body does not exist — it matched zero elements every load. Moved onto the same DOM-ready gate the reveals use.                |
+| 11  | Hover shadows "awful"                                | A full-strength cyan halo, which at button scale reads as a selection state. Now a 1px lift and a low-opacity neutral shadow.                                                                                 |
+| 12  | Navbar colour clashes with hero                      | Transparent over the hero, solid as soon as you scroll.                                                                                                                                                       |
+
+Accessibility went 96 → **100** in the process: the hair-type panel rewrite removed six
+white-on-blue failures, and the last one — the "Hours" tag at 1.75:1 — was fixed by flipping the
+label to ink instead of darkening the tag, so the brand cyan is reproduced exactly.
+
+Mobile performance also improved: two fewer image requests (the clock) and no per-slide blur.
+
+### Verified, not assumed
+
+- Two whole testimonial cards at 375/768/1024/1280/1440/1920 — the window heights are measured
+  from the tallest card at each width, not guessed.
+- All five product names render the same box height at every breakpoint, so autoplay swapping the
+  caption cannot shift the page.
+- Progress bar visible in all three navbar states; navbar transparent at top, solid when scrolled,
+  hidden on scroll-down, restored on scroll-up.
+- CLS 0 across four consecutive runs after the changes.
 
 ---
 

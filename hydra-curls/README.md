@@ -3,7 +3,7 @@
 Assignment 1 of the Moksha AI Full Stack Developer technical assignment: a 1920 × 15,249px Figma
 landing page for _Parachute Advanced — Hydra Curls_, rebuilt as a responsive React application.
 
-**Live:** _(see Deployment below)_
+**Live:** <https://moksha-hydra-curls.vercel.app>
 **Design source:** [Figma file](https://www.figma.com/design/Yqq9qC4hZqj0adhv5kJUNG/Untitled?node-id=1-503) · frame `1:503`
 
 <img src="docs/preview-hero.jpg" alt="The Hydra Curls landing page at 1920px" width="100%">
@@ -190,10 +190,14 @@ clipped), lists sub-44px tap targets, and prints the heading outline. The render
 
 |             | Performance | Accessibility | Best practices | SEO |
 | ----------- | ----------- | ------------- | -------------- | --- |
-| **Desktop** | 98–100      | 96            | 100            | 100 |
-| **Mobile**  | 87–89       | 96            | 100            | 100 |
+| **Desktop** | 98–99       | **100**       | 100            | 100 |
+| **Mobile**  | 92–99       | **100**       | 100            | 100 |
 
-LCP 1.0s desktop / 2.3s mobile · **CLS 0** · TBT 0ms desktop.
+LCP 1.0s desktop / 2.3s mobile · **CLS 0** · TBT 0–80ms.
+
+Mobile performance is sensitive to what else the measuring machine is doing: the same build scored
+87–89 with a second heavy process running and 98–99 once it stopped. LCP (2.3s) and CLS (0) held
+steady across every run, so those are the numbers to trust.
 
 ### What the page does
 
@@ -203,31 +207,34 @@ LCP 1.0s desktop / 2.3s mobile · **CLS 0** · TBT 0ms desktop.
   have given us, in about 90 lines.
 - **Islands.** Only three components hydrate — the mobile menu and the two carousels. The rest is
   static markup and stays that way.
-- **Images.** 40 assets (39 from the Figma file plus one derived at build time), AVIF + WebP
-  across a width ladder, with a small JPEG/PNG floor. Every
-  `<img>` gets intrinsic dimensions from a generated manifest, which is why CLS is 0 across all 55
-  of them. A mistyped asset name is a compile error, not a 404.
+- **Images.** 40 assets (39 from the Figma file plus one derived at build time), AVIF + WebP across
+  a width ladder, with a small JPEG/PNG floor. Every `<img>` gets intrinsic dimensions from a
+  generated manifest, which is why CLS is 0 across all 55 of them. A mistyped asset name is a
+  compile error, not a 404.
 - **Motion is composited.** Only `transform` and `opacity` are animated, so no animation can
-  trigger layout. `prefers-reduced-motion` is honoured globally, and the reveal script exits
-  before it ever adds a hidden state.
+  trigger layout. `prefers-reduced-motion` is honoured globally, and the reveal script exits before
+  it ever adds a hidden state.
+- **Two raster icons became one SVG.** The 48-hour clock shipped as two flat PNGs with its hands
+  baked in. Redrawn as SVG it animates, scales cleanly, and costs two fewer image requests.
 
-### Mobile is 89, not ≥95 — honestly
+### Three optimisations rejected on measurement
 
-The remaining cost is `styleLayout`: laying out a 15,000px document with 55 images. Three things
-were tried and **rejected on measurement**, each recorded in `PROGRESS.md` with its reason:
+Each is recorded in `PROGRESS.md` with its reason, so they are not re-attempted:
 
 - **`content-visibility: auto`** on below-fold bands bought ~3 points, but offscreen bands are then
-  genuinely unrendered — full-page screenshots and print come out blank below the fold. A bad
-  trade for a page whose purpose is to be looked at.
+  genuinely unrendered — full-page screenshots and print come out blank below the fold. A bad trade
+  for a page whose purpose is to be looked at.
 - **A shorter srcset ladder** made the HTML smaller but pushed phones onto larger renditions; LCP
   went _up_ ~1s.
 - **Code-splitting the carousels** saved ~10KB but, on a prerendered page, put a placeholder in the
   HTML and shifted the layout when the chunk landed (CLS 0 → 0.067).
 
-Accessibility sits at 96 for a similar reason: seven remaining contrast failures are white-on-cyan
-and white-on-teal from the design's own palette. The ones that could be fixed invisibly were
-(cyan set as _type_ on the pale background measured 1.7:1 and now clears WCAG at both the
-large-text and body-text thresholds); recolouring the brand bands was not done silently.
+### Accessibility reached 100 without repainting the brand
+
+Cyan set as _type_ on the pale background measured 1.7:1 and now clears WCAG at both the large-text
+and body-text thresholds. The last failure was the "Hours" tag — white on `#00D5FD` at 1.75:1.
+Rather than darken the tag and lose the brand colour, the label flips to ink: the cyan is
+reproduced exactly and the text clears AA with room to spare.
 
 ---
 
@@ -246,11 +253,10 @@ large-text and body-text thresholds); recolouring the brand bands was not done s
 
 ## Deployment
 
+**<https://moksha-hydra-curls.vercel.app>**
+
 Deployed on Vercel. Build command `npm run build`, output directory `dist`, no environment
 variables required.
-
-> **Live URL:** _to be pasted in — the deployment exists but its URL was not available when this
-> was written._
 
 ---
 
@@ -295,9 +301,22 @@ design spec were prepared separately beforehand and are not counted here.
 
 ---
 
+## Deliberate deviations from the design
+
+Every one of these is a considered choice, not an accident:
+
+| What                                                                           | Why                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cyan **text** on pale backgrounds darkened; the "Hours" tag's label set in ink | `#00D5FD` as type measures 1.7:1. The brand colour is reproduced exactly everywhere it is a _surface_ — only type on top of it moved.                                                                                               |
+| Navbar is transparent over the hero                                            | A navy strip butting against the hero's purple read as two unrelated surfaces. It takes its solid background as soon as you leave the top.                                                                                          |
+| Four testimonials authored                                                     | Figma ships one quote placed twice. With two identical cards in a two-up viewport the design's own prev/next buttons were permanently disabled — a designed control that looked broken. This is the only authored copy on the page. |
+| Announcement ticker made visible                                               | Its text node sits at x1950, off-canvas past the 1920 frame and invisible in the export.                                                                                                                                            |
+| Hair-type CHARACTERISTICS panel on hover                                       | Figma parks it outside the card bounds and the reference render does not show it. Kept as a hover overlay so the copy is not discarded, hidden with opacity so it stays in the accessibility tree.                                  |
+| Soft wave dividers between bands                                               | The reference render curves several section boundaries that a plain background change renders as straight lines.                                                                                                                    |
+
 ## Known gaps
 
-- Mobile Lighthouse performance is 89 against a 95 target — reasoning above.
-- Seven contrast failures inherited from the design's palette remain.
 - The brand key visual renders ~8% larger than the reference export; same asset, same cover crop,
   cause not identified. Within tolerance and not chased further.
+- `scripts/figma-geometry.mjs` never completed — the Figma token stayed rate-limited, so the wave
+  divider ships with a hand-traced path rather than the file's exact geometry.

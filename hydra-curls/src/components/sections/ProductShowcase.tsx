@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { CurvedText } from '@/components/primitives/CurvedText'
 import { Picture } from '@/components/primitives/Picture'
+import { SoftWave } from '@/components/primitives/SoftWave'
 import { WaveDivider } from '@/components/primitives/WaveDivider'
 import {
   Carousel,
@@ -34,6 +35,9 @@ import { cn } from '@/lib/utils'
 export function ProductShowcase() {
   const [api, setApi] = useState<CarouselApi>()
   const [active, setActive] = useState(0)
+  // Autoplay pauses while a pointer is over the carousel or focus is inside it, so it never
+  // moves the slide out from under someone reading or tabbing through the controls.
+  const [engaged, setEngaged] = useState(false)
 
   useEffect(() => {
     if (!api) return
@@ -45,6 +49,26 @@ export function ProductShowcase() {
     }
   }, [api])
 
+  /**
+   * Infinite auto-advance, written by hand rather than pulling in embla-carousel-autoplay: the
+   * behaviour worth having is four lines of interval plus the pause rules, and a plugin would
+   * be another dependency to justify.
+   *
+   * It stops entirely under reduced motion — an unattended loop is exactly the kind of motion
+   * that setting exists to switch off — and while the tab is hidden, where the interval would
+   * otherwise queue up advances that all land at once on return.
+   */
+  useEffect(() => {
+    if (!api || engaged) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const id = window.setInterval(() => {
+      if (document.hidden) return
+      api.scrollNext()
+    }, 4200)
+    return () => window.clearInterval(id)
+  }, [api, engaged])
+
   const scrollTo = useCallback((index: number) => api?.scrollTo(index), [api])
   const activeProduct = products[active] ?? products[0]
 
@@ -52,7 +76,7 @@ export function ProductShowcase() {
     <section
       id="products"
       aria-labelledby="products-heading"
-      className="bg-page relative w-full overflow-hidden pb-6"
+      className="bg-page relative w-full overflow-hidden"
     >
       <h2 id="products-heading" className="sr-only">
         The Hydra Curls range
@@ -88,10 +112,30 @@ export function ProductShowcase() {
           <div className="bg-brand-purple absolute inset-0 rounded-full" />
         </div>
 
-        <div className="relative z-10 px-5 pt-10 pb-[4.4%] md:pt-16">
+        <div
+          className="relative z-10 px-5 pt-10 pb-[4.4%] md:pt-16"
+          onPointerEnter={() => setEngaged(true)}
+          onPointerLeave={() => setEngaged(false)}
+          onFocusCapture={() => setEngaged(true)}
+          onBlurCapture={() => setEngaged(false)}
+        >
+          {/* The glow behind the centre bottle.
+              It used to live inside each slide, where the carousel's own `overflow-hidden`
+              sliced the blur into a hard rectangle — visible as a cut edge above the bottle and
+              down both sides of the band. Since the carousel is centre-aligned the lit spot
+              never moves, so one glow on the section behind it is both correct and cheaper:
+              nothing clips it, and it no longer re-blurs on every slide change. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute top-[6%] bottom-[22%] left-1/2 w-[min(34rem,72%)] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgb(255_255_255/0.55),rgb(255_255_255/0.16)_58%,transparent)] blur-2xl"
+          />
+
           <Carousel
             setApi={setApi}
-            opts={{ align: 'center', loop: true }}
+            // `duration` is embla's glide length in its own units (default 25). The design's
+            // bottles are large objects; at the default they snap, which reads as a jump
+            // rather than a transition.
+            opts={{ align: 'center', loop: true, duration: 38 }}
             className="mx-auto w-full max-w-[71.875rem]"
           >
             <CarouselContent className="items-end">
@@ -102,17 +146,6 @@ export function ProductShowcase() {
                       drive the whole band and stretches the purple well past its designed
                       depth, so the slide fixes a height and the bottles fit inside it. */}
                   <div className="relative flex h-[52vw] max-h-[35.75rem] items-end justify-center sm:h-[34vw]">
-                    {/* The soft halo behind the active bottle. Sized from the slide so it
-                      tracks whatever the carousel is showing. */}
-                    <div
-                      aria-hidden="true"
-                      className={cn(
-                        'absolute top-[8%] bottom-[8%] left-1/2 w-[78%] -translate-x-1/2 rounded-[50%] blur-2xl transition-opacity duration-300',
-                        index === active
-                          ? 'bg-pastel-pink/70 opacity-100'
-                          : 'bg-white/25 opacity-70',
-                      )}
-                    />
                     <Picture
                       asset={product.image}
                       className={cn(
@@ -127,8 +160,32 @@ export function ProductShowcase() {
               ))}
             </CarouselContent>
 
-            <CarouselPrevious className="left-1 size-11 rounded-[1.25rem] border-white/50 bg-white/30 text-white hover:bg-white/45 hover:text-white sm:left-0 sm:size-[3.25rem] md:size-[4.6875rem]" />
-            <CarouselNext className="right-1 size-11 rounded-[1.25rem] border-white/50 bg-white/30 text-white hover:bg-white/45 hover:text-white sm:right-0 sm:size-[3.25rem] md:size-[4.6875rem]" />
+            {/* Glass discs rather than the flat translucent squares they were: at this size,
+                over artwork, a bordered rectangle reads as a placeholder. They lift and fill
+                with brand cyan on hover, and sit at 42% so they line up with the bottles
+                rather than the caption below them. */}
+            <CarouselPrevious
+              className={cn(
+                'absolute top-[42%] z-20 size-12 -translate-y-1/2 rounded-full md:size-16',
+                'border border-white/45 bg-white/15 text-white backdrop-blur-md',
+                'transition-[background-color,border-color,transform,opacity] duration-300',
+                'hover:border-brand-cyan hover:bg-brand-cyan/85 hover:scale-105 hover:text-white',
+                'focus-visible:border-brand-cyan motion-reduce:hover:scale-100',
+                '[&_svg]:size-5 md:[&_svg]:size-7',
+                'left-2 md:left-6',
+              )}
+            />
+            <CarouselNext
+              className={cn(
+                'absolute top-[42%] z-20 size-12 -translate-y-1/2 rounded-full md:size-16',
+                'border border-white/45 bg-white/15 text-white backdrop-blur-md',
+                'transition-[background-color,border-color,transform,opacity] duration-300',
+                'hover:border-brand-cyan hover:bg-brand-cyan/85 hover:scale-105 hover:text-white',
+                'focus-visible:border-brand-cyan motion-reduce:hover:scale-100',
+                '[&_svg]:size-5 md:[&_svg]:size-7',
+                'right-2 md:right-6',
+              )}
+            />
           </Carousel>
 
           <p
@@ -164,18 +221,33 @@ export function ProductShowcase() {
         </div>
       </div>
 
-      {/* The arc echoes the curve above it: chord 1572, sagging 251 at 72px, measured off the
-          bounding boxes of the 48 individual glyph nodes. Pulled up so it tucks under the
-          circle's rim the way it does in the design. */}
-      <CurvedText
-        id="showcase-arc"
-        chord={1572}
-        sag={251}
-        fontSize={72}
-        className="pointer-events-none relative z-0 mx-auto mt-[11%] -mb-[5%] w-[86%] max-w-[98.25rem] text-black/45"
-      >
-        {curvedArcText}
-      </CurvedText>
+      {/* The arc, and the band it sits on.
+          The reference render does not put this script on the page background: a pale cyan
+          field carries on beneath the purple circle and hands over to white along a curve, with
+          the arc crossing that boundary. Rendering the text on flat white lost the shape
+          entirely and left the line floating in a gap, which is what it looked like. */}
+      {/* The top padding is not decoration. CurvedText renders `overflow-visible`, and the
+          glyphs at the ends of a sagging arc sit well above the SVG's own box — measured at
+          160px of ink above the element at 1440px wide. Without clearance here the line rides
+          up over the thumbnails above it. */}
+      <div className="bg-brand-cyan-soft relative pt-[13%]">
+        <SoftWave
+          fillClassName="fill-page"
+          className="absolute inset-x-0 bottom-0 h-[clamp(3rem,8vw,9rem)]"
+        />
+
+        {/* chord 1572, sagging 251 at 72px, measured off the bounding boxes of the 48
+            individual glyph nodes. Pulled up so it tucks under the circle's rim. */}
+        <CurvedText
+          id="showcase-arc"
+          chord={1572}
+          sag={251}
+          fontSize={72}
+          className="pointer-events-none relative z-10 mx-auto w-[86%] max-w-[98.25rem] pb-[7%] text-black/45"
+        >
+          {curvedArcText}
+        </CurvedText>
+      </div>
     </section>
   )
 }

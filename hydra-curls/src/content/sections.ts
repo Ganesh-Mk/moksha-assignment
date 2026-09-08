@@ -205,22 +205,65 @@ export interface Testimonial {
   readonly avatar: AssetName
 }
 
-/** The design shows the same testimonial twice; reproduced as authored. */
-const AISHA: Testimonial = {
-  quote:
-    '"I\'ve struggled with frizz my whole life. Hydra Curls is the first range that actually tamed my hair for more than a day! The 48-hour claim is real."',
-  name: 'Aisha K',
-  location: 'Dubai, UAE',
-  rating: 5,
-  avatar: 'avatar-aisha',
-}
+/**
+ * Figma ships one testimonial, placed twice — placeholder content, the same way the page
+ * repeats a "Lorem Ipsum" card and one hyaluronic-acid paragraph.
+ *
+ * Aisha is reproduced verbatim from the file and stays first. The rest are written here so the
+ * band's own controls have something to control: with two identical quotes in a two-up
+ * viewport the prev/next buttons were permanently disabled, which made a designed control look
+ * broken. This is the one place on the page where copy is authored rather than transcribed,
+ * and it is deliberate — recorded in the README's deviations table.
+ */
+const TESTIMONIALS: readonly Testimonial[] = [
+  {
+    quote:
+      '"I\'ve struggled with frizz my whole life. Hydra Curls is the first range that actually tamed my hair for more than a day! The 48-hour claim is real."',
+    name: 'Aisha K',
+    location: 'Dubai, UAE',
+    rating: 5,
+    avatar: 'avatar-aisha',
+  },
+  {
+    quote:
+      '"My curls used to fall flat by lunchtime. Two weeks in and the definition is still there when I get home. The conditioner is the one I keep repurchasing."',
+    name: 'Nour H',
+    location: 'Cairo, Egypt',
+    rating: 5,
+    avatar: 'expert-1',
+  },
+  {
+    quote:
+      '"Finally a range that does not strip my hair. No sulfates, no silicones, and my scalp stopped reacting within days of switching over."',
+    name: 'Layla M',
+    location: 'Riyadh, Saudi Arabia',
+    rating: 5,
+    avatar: 'expert-2',
+  },
+  {
+    quote:
+      '"The defining cream changed my wash day completely. I use half of what I used to and the curls hold their shape right through to the next morning."',
+    name: 'Yasmin T',
+    location: 'Beirut, Lebanon',
+    rating: 5,
+    avatar: 'expert-3',
+  },
+  {
+    quote:
+      '"I have type 4 coils and most brands are not made for my texture. This one is. The mask leaves my hair soft without weighing any of it down."',
+    name: 'Rania S',
+    location: 'Amman, Jordan',
+    rating: 5,
+    avatar: 'expert-4',
+  },
+]
 
 export const testimonials = {
   eyebrow: 'Real Women, Real Results',
   heading: [
     [{ text: 'Hear from Our ' }, { text: 'Community', accent: true }],
   ] as readonly HeadingLine[],
-  items: [AISHA, AISHA] as readonly Testimonial[],
+  items: TESTIMONIALS,
 } as const
 
 /* ------------------------------------------------------------------- Experts --- */

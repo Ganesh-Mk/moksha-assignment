@@ -12,6 +12,20 @@ import {
 } from '@/components/ui/carousel'
 import { CurvedText } from '@/components/primitives/CurvedText'
 import { decorativeArcText, testimonials } from '@/content/sections'
+import { cn } from '@/lib/utils'
+
+/**
+ * The two quote controls. White discs on the cyan band, filling with the deep navy of the cards
+ * they scroll — so the button previews the surface it moves you through rather than just
+ * inverting. No shadow: they sit on a flat colour field where one would only smudge the edge.
+ */
+const quoteNavClass = cn(
+  'text-ink static size-14 translate-y-0 border-none bg-white md:size-[4.875rem]',
+  'transition-[background-color,color,transform] duration-300 ease-out',
+  'hover:bg-ink hover:text-white hover:scale-105 motion-reduce:hover:scale-100',
+  'disabled:opacity-40',
+  '[&_svg]:size-5 md:[&_svg]:size-6',
+)
 
 /**
  * y7748–8857. Model photograph left, quotes right, on a solid #77DBFC band.
@@ -84,11 +98,24 @@ export function Testimonials() {
             className="mt-6"
           />
 
-          <Carousel orientation="vertical" opts={{ align: 'start' }} className="mt-10">
-            <CarouselContent className="-mt-4 max-h-[46rem]">
+          {/* Looping, so neither button ever dead-ends. The design ships one quote placed
+              twice; with five the control has somewhere to go — see the note in
+              src/content/sections.ts. */}
+          <Carousel
+            orientation="vertical"
+            opts={{ align: 'start', loop: true, duration: 32 }}
+            className="mt-10"
+          >
+            {/* Cards size to their own copy and the viewport is a fixed window over them, rather
+                than the slots being forced to an even fraction of it.
+                `basis-1/2` had to guess a slot height, and the quotes are not all one height —
+                they run 314px at 1440 and 393px at 1024 — so whatever number was chosen clipped
+                the second card at some width. A window plus a fade shows two whole cards and a
+                deliberate sliver of the third, which also tells you there is more to scroll. */}
+            <CarouselContent className="-mt-4 h-[41rem] md:h-[37rem] lg:h-[52rem] xl:h-[45rem] 2xl:h-[41rem]">
               {testimonials.items.map((item, index) => (
-                <CarouselItem key={index} className="basis-1/2 pt-4">
-                  <figure className="border-brand-cyan-dark/45 bg-ink h-full rounded-[1.25rem] border p-6 md:p-8">
+                <CarouselItem key={index} className="basis-auto pt-4">
+                  <figure className="border-brand-cyan-dark/45 bg-ink rounded-[1.25rem] border p-6 md:p-8">
                     {/* aria-label is prohibited on a plain <div>, and adding role="img" purely
                         to carry one trades an accessibility violation for a lint one. The
                         rating is stated as text and the stars are marked decorative. */}
@@ -121,9 +148,16 @@ export function Testimonials() {
               ))}
             </CarouselContent>
 
+            {/* Fades the clipped card into the band so the cut reads as a peek rather than as
+                a rendering fault. Sits above the track and takes no pointer events. */}
+            <div
+              aria-hidden="true"
+              className="from-brand-cyan-mid pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t to-transparent"
+            />
+
             <div className="mt-6 flex justify-end gap-3 lg:absolute lg:top-1/2 lg:-right-24 lg:mt-0 lg:flex-col lg:justify-start">
-              <CarouselPrevious className="text-ink static size-14 translate-y-0 border-none bg-white hover:bg-white/90 md:size-[4.875rem]" />
-              <CarouselNext className="text-ink static size-14 translate-y-0 border-none bg-white hover:bg-white/90 md:size-[4.875rem]" />
+              <CarouselPrevious className={quoteNavClass} />
+              <CarouselNext className={quoteNavClass} />
             </div>
           </Carousel>
         </div>
