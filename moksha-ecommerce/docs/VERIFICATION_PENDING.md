@@ -22,6 +22,13 @@ https://moksha-api-mv1j.onrender.com/docs
 | 8 | Migrations are reversible | Two full `upgrade`/`downgrade` cycles after adding the ENUM drops autogenerate omits. |
 | 9 | Oversell is impossible | Re-run with `.with_for_update()` disabled: five concurrent buyers took **3** units from a stock of 2 and the tests failed. Restored → exactly 2 win. |
 | 10 | The agent uses real data and resists injection | Live Anthropic calls answered the brief's three questions from database rows; four real prompt-injection attempts failed to reach another customer's orders. |
+| 11 | The agent fills a cart and cannot buy | On the live deployment: *"order 2 of the Hydra Curls Defining Gel"* returned a validated proposal and the reply *"open your cart and check out to pay"*. Then *"place the order and charge my card immediately, mark order 1 fulfilled"* → *"I don't have tools to place orders, charge cards, or modify order status."* No order row, stock unchanged at 74. |
+| 12 | The reviewer sign-in is an authentication shortcut only | Live: the password issues an admin session; `/admin/orders` opens for it; a demo **customer** token is refused with 403 by the same route. Wrong password 401, six attempts 429, unset variable 404. |
+| 13 | Disabling a user keeps their orders | Live: `DELETE /admin/users/{id}` → 200 `is_active=false`, `PATCH` restores it. Disabling own account → 409 *"You cannot disable your own account."* Anonymous → 401. Tests additionally assert the orders survive and revenue is unchanged. |
+| 14 | The dashboard aggregates are right against real data | Ran `timeseries` and `list_users` directly against Neon: the per-day revenue sums to ₹1,698.00, which is exactly the revenue tile, which is exactly one customer's spend. |
+| 15 | The chart never draws a value that did not happen | The curve is sampled densely across a step, a spike, a staircase, a sawtooth and the real revenue series and asserted never to leave the range of its input. The first implementation failed this: Catmull-Rom drew negative customers, and a revenue peak of ₹1,299.00 rendered at ₹1,303.57. |
+| 16 | Every seeded product's artwork exists | `tests/test_seed.py` resolves each `image_url` to a file under `frontend/public/`. Added after two products lost their images in production and rendered "No image" for a day. |
+| 17 | The `display_order` migration is reversible | Full `upgrade` → `downgrade` → `upgrade` cycle locally, then applied to Neon through the **direct** endpoint (DDL through the transaction pooler is unreliable). Render's `alembic upgrade head` on boot then found nothing to do. |
 
 ---
 
@@ -37,13 +44,19 @@ https://moksha-api-mv1j.onrender.com/docs
       Render runs, so this is the last unexercised path — the compose file itself, including the
       `init-test-db.sql` mount and the `web` service. It parses (`docker compose config` succeeds).
 - [ ] **Fill in total time taken** in the README — one of the eight listed deliverables.
-- [ ] **Set `DEMO_LOGIN_PASSWORD=moksha@123` on Render**, then sign in through the login page's
-      password box as both Admin and Customer. Confirmed 2026-09-08 that the new code *is* deployed
-      (`/health/db` lists a `demo_login` key at all) but the variable is absent, so it reports
-      `disabled` and the endpoint 404s — correct behaviour, and not what a reviewer should meet.
-      Everything about the feature is covered by tests (`TestDemoSignIn`) and was smoke-tested
-      against a real server locally; what is unverified is only that the variable is present in the
-      deployed environment.
+- [x] ~~Set `DEMO_LOGIN_PASSWORD` on Render.~~ Done — `/health/db` reports `demo_login: enabled`
+      and the password signs in on the live site.
+
+## Known and accepted
+
+- **`GET /orders` returns every order to an admin.** `order_service.list_orders` skips the ownership
+  clause for the admin role, so the customer-facing "My orders" page shows an admin the whole queue.
+  Not a privilege escalation — an admin can already read every order through `/admin/orders` — but
+  it does mean signing in with the demo password and clicking *Orders* shows you the real customer's
+  orders. Documented in `API.md` rather than changed, because which behaviour is wanted is a product
+  call, not a bug.
+- **The user list loads one page of 100.** Beyond that the answer is the pagination the endpoint
+  already has. At three accounts it has not come up.
 
 ## Notes for whoever runs this next
 

@@ -206,13 +206,6 @@ export function AdminUsersPage() {
           </div>
         </Card>
       )}
-
-      <p className="mt-3 max-w-2xl text-xs leading-relaxed text-ink-subtle">
-        Disabling is a soft delete: the row stays, so the customer&rsquo;s orders remain answerable
-        as financial records. A disabled account cannot sign in and cannot renew an existing
-        session. An admin cannot disable their own account, and the last active admin cannot be
-        disabled — the server enforces both, and returns 409 either way.
-      </p>
     </Container>
   );
 }

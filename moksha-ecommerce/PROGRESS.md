@@ -172,16 +172,54 @@ every width — worth remembering: anything inside a scaled SVG that is meant to
 
 Every admin sub-page now opens with a *Back to Admin* link, and the login card lost a sentence.
 
+## Where it stands
+
+All ten build phases plus deployment are done, and everything since has been a second and third
+pass over the live application. The state to hand over:
+
+| | |
+|---|---|
+| Backend tests | **321**, green, no API credentials needed |
+| Frontend tests | **50** |
+| Gates | ruff lint + format, mypy --strict, tsc, oxlint, vite build — all green |
+| Routes | 31, of which 21 are protected; every one classified by `test_authz.py` |
+| Migrations | `03b0a96f0867` → `7c1f2a9d4e10`, both reversible, both applied to Neon |
+| Live | app on Vercel, API on Render, Postgres on Neon, all verified this session |
+| Deliverables | 8 of 8 present; only **total time taken** is still blank |
+
 ## Open items
 
-1. **Set `DEMO_LOGIN_PASSWORD=moksha@123` on Render.** The code is deployed — `/health/db` already
-   reports the `demo_login` key — but the variable is missing, so it reads `disabled` and the login
-   page says the door is switched off. Nothing else needs it; the frontend has no matching env var.
-2. **Roll the Stripe secret key** — briefly exposed by `/payments/config` before the prefix guard.
+1. **Roll the Stripe secret key** — briefly exposed by `/payments/config` before the prefix guard.
    Test-mode, bounded risk, but it should not stay live.
-3. **Total time taken** — the one deliverable still blank, and only the user can fill it in.
+2. **Total time taken** — the one deliverable still blank, and only the user can fill it in.
+3. **`GET /orders` returns every order to an admin.** Intentional in the service, documented in
+   `API.md`, and not an escalation — but it means the demo admin's *Orders* page shows the real
+   customer's orders. Whether to make it strictly own-only is a product call, not a bug fix.
 4. **Port 5173** is contested with Assignment 1 locally. Only A2 needs it (Google authorises that
    origin and no other), so A1 should move. Not my folder to change.
+
+## What the second and third passes taught
+
+Four of the six real bugs found after deployment were things no test could have failed on, because
+no test knew to look:
+
+- **The seed named a file the frontend had to be carrying, and nothing checked.** Two products lost
+  their `image_url` and the shop rendered "No image" for a day. `tests/test_seed.py` now resolves
+  every seeded path to a file on disk. The lesson generalises: a coupling that crosses a folder
+  boundary is exactly the one nobody owns.
+- **A `type="url"` input rejected the app's own artwork.** Root-relative paths have no scheme or
+  host, so the browser refused `/products/curl-refresh-mist.svg` — and that is *why* the two
+  products lost their images. A validation rule stricter than the data it validates is a bug that
+  looks like correctness.
+- **Text inside a scaled SVG scales.** The chart's 11px axis labels rendered at 23px on a wide
+  screen. Anything inside a fixed-viewBox SVG that is meant to be *read* belongs in HTML beside it.
+- **A smoothing curve can invent data.** Catmull-Rom overshot a step and drew negative customers.
+  The replacement (Fritsch–Carlson) cannot, by construction — and moving it into `lib/` made the
+  guarantee testable, which is how the second bug in it was found: at a local peak the textbook
+  limiter still lets the curve past the extremum.
+
+The pattern across all four: each was a boundary the tests did not cross, and in three of the four
+the fix was to move the logic somewhere it could be tested as a pure function.
 
 ## Local environment notes
 - **Docker** was intermittently broken on this machine early on (`wslexec … 0xc00000fd`), which is
@@ -201,4 +239,4 @@ Full rationale in [`docs/DECISIONS.md`](docs/DECISIONS.md) (D-001 … D-018).
 | Date | Phases |
 |---|---|
 | 2026-09-07 | 0–9. Google, Stripe and Anthropic credentials arrived mid-build; every integration verified against its real service. |
-| 2026-09-08 | 10 — deployed to Vercel + Render + Neon, and the four production-only bugs above found and fixed. Light theme, order thumbnails, and the reviewer sign-in added after walking the live app. |
+| 2026-09-08 | 10 — deployed to Vercel + Render + Neon, and the four production-only bugs above found and fixed. Then three passes over the live app: light theme, order thumbnails and the reviewer sign-in; the dashboard chart, customer table and the agent's cart tool; merchandising order, user management and the curve that was drawing values that never happened. |

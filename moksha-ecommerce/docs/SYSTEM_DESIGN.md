@@ -74,6 +74,31 @@ The agent's tools import the *same functions* the routers call. Two consequences
 Services never import `HTTPException`; domain exceptions map to status codes in one handler. That is
 what keeps them callable from the agent.
 
+### Where the agent is allowed to write
+
+The agent reads through those services freely. It writes through exactly one tool, `add_to_cart`,
+and that tool does not write to the database at all — it records a **proposal**, which the streaming
+reply carries to the browser, which applies it to the cart it already owns.
+
+That shape is forced by an earlier decision rather than chosen for the agent's sake: the cart is
+client-owned state (D-012), so there is no cart table to write to, and adding one so a chat feature
+could write to it would be a schema change driven by the wrong requirement.
+
+What it buys is a boundary that is easy to state and easy to test. The agent can put something in
+front of a customer; it cannot buy it for them. Payment is untouched — cart, checkout, Stripe — and
+the amount charged is still recomputed from database prices under the stock lock, so nothing in a
+proposal is trusted on the way back in. The last step is deliberately a thing a person does, because
+the failure mode of getting this wrong is spending someone's money on the strength of a sentence
+they typed — possibly a sentence someone else wrote into a product description.
+
+```
+customer: "order me two of the curl gel"
+   └─ agent → product_service.find_product   (the same function the router calls)
+      └─ exists? live? in stock?             (refused otherwise, and it says why)
+         └─ proposal → SSE → browser cart    (no row written, no stock moved)
+            └─ customer opens the cart and checks out   ← the only step that spends money
+```
+
 ---
 
 ## The two integration flows
@@ -235,6 +260,36 @@ API → database → Stripe → Anthropic, a token-spend dashboard broken down p
 webhook failure rate, agent error rate and p99 checkout latency. **Spend is a first-class metric
 here** — for an LLM feature it is as operationally important as latency, and it is the one nobody
 instruments until the first surprising invoice.
+
+---
+
+## The admin read model
+
+Two of the dashboard's numbers are worth a paragraph because the naive versions are wrong in ways
+that do not announce themselves.
+
+**The activity series is dense.** `/admin/stats/timeseries` returns every day in the window,
+including the ones with no activity. A sparse series is how a chart lies without anyone writing a
+false number: omit the quiet days and the line joins the two either side of the gap, drawing a
+smooth trend across a fortnight when nothing happened. Days with data come from one grouped query;
+the empty ones are filled in Python against a generated date range.
+
+Two of the four series are **flows** (revenue, orders — what happened that day) and two are
+**stocks** (customers, products — how many existed by the end of it). Stocks are computed as an
+opening balance plus a running sum, which needs two queries rather than a window function over the
+windowed rows: the opening balance is a count over all of history, and expressing it as a window
+would scan every row ever created to reach a number `COUNT` already knows.
+
+**The user table is one grouped `LEFT JOIN`.** The obvious implementation of that screen is a query
+per user, and at a hundred customers that is a hundred round trips to render one table. `LEFT`, so a
+customer who has bought nothing still appears — an inner join silently hides every new signup.
+Spend counts paid and fulfilled orders only, the same definition the revenue tile uses, and a test
+asserts the two agree; two figures on one screen that disagree about what a sale is are worse than
+one figure.
+
+Neither is cached. At this size the queries are milliseconds, and a cache would be the third place
+that has an opinion about what revenue means. The first thing to cache under load is the catalogue,
+which is discussed above and does not have that problem.
 
 ---
 

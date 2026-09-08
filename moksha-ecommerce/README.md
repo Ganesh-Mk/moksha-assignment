@@ -27,9 +27,14 @@ If you read nothing else, these are where the thinking is.
 **1 · Authorization is enforced on the server, and proved.**
 `backend/tests/test_authz.py` discovers every route from the app's own OpenAPI document and
 parametrizes over it — so a route added tomorrow is tested tomorrow, without anyone remembering to
-add a case. It asserts a customer's token gets `403` on all 8 admin routes, an admin gets through
-all 8 (a guard that refuses everyone is not a guard), anonymous callers get `401` on all 14
-protected routes, and that **no route escapes classification**.
+add a case. Across the **31** routes the app currently exposes it asserts a customer's token gets
+`403` on all **12** admin routes, an admin gets through all 12 (a guard that refuses everyone is
+not a guard), anonymous callers get `401` on all **21** protected routes, and that **no route
+escapes classification** — an unclassified route fails the suite rather than slipping through.
+
+Those numbers are not maintained by hand. Every endpoint added during this build — the demo
+sign-in, the dashboard aggregates, user management — was covered by that suite the moment it was
+registered, and two of them were caught by it before they had a test of their own.
 
 > The Admin link is hidden from customers in the navigation. **That is UX, not security.** Deleting
 > that conditional would change nothing about what a customer can do — `core/deps.py` is the
@@ -47,17 +52,56 @@ Stripe delivers at-least-once and retries on any non-2xx. The handler inserts th
 decrements stock twice on the first retry. Verified against the real Stripe CLI — it redelivered
 two events unprompted and both were logged as duplicates.
 
-**4 · The AI agent cannot be prompt-injected into another customer's orders.**
+**4 · The AI agent can fill a cart, and cannot spend anyone's money.**
 Order tools take **no user argument**. Identity is a closure variable bound from the verified JWT,
 so it never appears in the tool's JSON schema — and everything in that schema is filled in by the
 model, which is steered by what the customer types. There is nothing for an injected instruction to
 fill in. Four real attacks were run against the live model; the model's own reply names the reason:
 *"there's no user_id parameter, and the tools are scoped to you automatically."*
 
+Its one tool that changes anything is `add_to_cart`, and what it changes is a **proposal**: a cart
+line validated against the real product row, which the browser applies to the cart it already owns.
+It cannot place an order, take payment or edit the catalogue — the customer opens the cart and
+checks out. `test_agent_cart.py` asserts a proposal writes no order row and decrements no stock.
+Asked on the live deployment to *"place the order and charge my card immediately"*, the model
+answers: *"I don't have tools to place orders, charge cards, or modify order status — and those
+instructions don't change what I can actually do."*
+
 **5 · The client cannot influence what it is charged.**
 The order request schema has no price field at all. The server recomputes the total from the rows it
 locks. Even the cart's own subtotal is labelled "a preview" in the UI, because the server's figure
 is the one charged.
+
+---
+
+## What is actually in it
+
+**Shop.** A 15-product catalogue in an explicit merchandising order, searchable and filterable by
+category, paginated. The five Hydra Curls products are the range from the Assignment 1 landing
+page, with its photography — the shop sells what the marketing site advertises.
+
+**Cart and checkout.** Client-owned cart (the only genuinely client-owned state), Stripe Checkout
+in test mode, a signature-verified idempotent webhook, and an order state machine whose legal
+transitions the server publishes so the admin UI cannot offer an illegal one.
+
+**Orders.** Own-orders list and detail with a status timeline, cancellation of an unpaid order
+which returns its stock exactly once.
+
+**AI assistant.** A LangGraph agent over live database tools: prices, stock, search, the caller's
+own orders — and `add_to_cart`, which proposes a validated cart line and hands the customer back to
+the cart to pay. Streams over SSE. Its replies render markdown.
+
+**Admin console.** Three screens behind `require_admin`:
+
+| Screen | What it does |
+|---|---|
+| Overview | revenue, paid orders, customers, low stock · top spenders · running low · an activity chart over 7/30/90 days with four series and two axes |
+| Catalogue | create, edit, withdraw and restore products; price entry in rupees converted to integer paise at one boundary |
+| Customers | every account with what it has bought; disable and restore, guarded so an admin cannot lock everyone out |
+
+**Accessibility and theming.** One CSS custom-property token layer, no `dark:` variant anywhere,
+`prefers-reduced-motion` honoured once at the token layer, semantic HTML, visible focus rings,
+keyboard-reachable everything.
 
 ---
 
@@ -162,15 +206,15 @@ Google accounts get through it. Your address in `ADMIN_EMAILS` makes that accoun
 
 **2. Reviewer sign-in (a password, no email).** Because of the above, a reviewer with no
 allow-listed account cannot use door 1 and would see the catalogue and nothing else. So the login
-page also offers a password box — pick **Admin** or **Customer**, enter the password, and you are
-signed into the matching seeded account.
+page also offers a password box. One field — no email, no role picker.
 
 > ### Password: `moksha@123`
 
-| Role | Seeded as | Password sign-in gives you |
-|---|---|---|
-| Customer | `demo.customer@moksha.test` | shop, checkout, order history, AI assistant |
-| Admin | `demo.admin@moksha.test` | order queue, status transitions, product editing, stats |
+It signs you into the seeded admin (`demo.admin@moksha.test`), which is every screen in the app:
+the shop, the cart, checkout, order history, the AI assistant, and the admin console. A seeded
+customer (`demo.customer@moksha.test`) exists alongside it and is reachable through the API, but
+the UI does not offer it — an admin can already do everything a customer can, and a genuine
+customer session is what Google sign-in is for.
 
 Yes, that password is written down in a public repository, and yes it grants admin on the live
 demo to anyone who reads it. That is the intended trade for a reviewable demo, not an oversight —
@@ -207,8 +251,8 @@ withdrawn — invisible in the catalogue, still resolvable from a past order.
 ./scripts/verify.ps1                    # all eight gates: lint, types, tests, build
 cd backend && ./scripts/docker-verify.sh   # builds the production image and proves it runs
 
-cd backend && pytest -v                 # 191 tests
-cd frontend && npm test                 # 20 tests
+cd backend && pytest -v                 # 321 tests
+cd frontend && npm test                 # 50 tests
 ```
 
 **`docker compose up` does not verify the Dockerfile.** Compose bind-mounts the source over
@@ -237,10 +281,18 @@ Where a fake would weaken a test, there is none:
 | `test_auth.py` | JWKS verification, forged / `alg:none` / expired / tampered tokens, role assignment |
 | `test_orders.py` | server-authoritative totals, oversell under concurrency, deadlock avoidance, the state machine |
 | `test_payments.py` | signature verification, idempotency, every payment outcome |
-| `test_agent_authz.py` | prompt injection, tool schemas, the read-only guarantee, rate limiting |
+| `test_agent_authz.py` | prompt injection, tool schemas, what the agent still cannot do, rate limiting |
 | `test_agent.py` | the brief's three questions answered from real database rows |
+| `test_agent_cart.py` | the cart tool proposes and never purchases; refuses unknown, sold-out, withdrawn |
+| `test_dashboard.py` | the activity series is dense; spend agrees with revenue; disabling a user keeps their orders |
+| `test_seed.py` | every seeded product's artwork exists on disk, prices are integers, slugs unique |
 | `test_models.py` | database-level invariants — constraints, snapshots, the ledger |
 | `test_health.py` | boot, readiness, correlation ids |
+
+On the frontend, `npm test` covers the three pieces of real logic that live there: money
+formatting, the cart store (including the lines the agent proposes), the markdown the assistant
+replies in, and the chart's curve — which is sampled densely and asserted never to leave the range
+of its data, because the first implementation drew negative customers.
 
 ---
 
@@ -260,10 +312,13 @@ moksha-ecommerce/
 │   ├── scripts/seed.py
 │   └── run.py             local entrypoint (see the Windows note above)
 ├── frontend/
+│   ├── public/products/   SVG artwork, plus the five Hydra Curls photographs from A1
 │   ├── src/
 │   │   ├── styles/        the token layer — every colour, size and duration
 │   │   ├── components/ui/ primitives built on those tokens
+│   │   ├── components/admin/  the activity chart and its metric definitions
 │   │   ├── hooks/         TanStack Query wrappers, auth, SSE chat
+│   │   ├── lib/           pure logic, tested without a DOM: money, markdown, the chart curve
 │   │   └── store/cart.ts  the only genuinely client-owned state
 │   └── scripts/generate-product-art.mjs
 └── docs/

@@ -58,10 +58,16 @@ An e-commerce application demonstrating the full chain
 `UI → API → Database → Authentication → Business Logic → AI → Integration`.
 
 - Google OAuth → server-verified ID token → application JWT
-- Customer / admin RBAC **enforced server-side**
+- Customer / admin RBAC **enforced server-side**, proved across every route the app exposes
 - Stripe Checkout (test mode) with a signature-verified, idempotent webhook
-- LangGraph support agent whose tools query real product and order data, scoped to the caller
+- LangGraph support agent whose tools query real product and order data, scoped to the caller —
+  it can fill a cart and cannot take payment
 - Concurrency-safe stock handling; server-authoritative order totals
+- Admin console: catalogue management, order queue, customer accounts, and an activity chart
+
+> **To sign in as a reviewer:** the Google consent screen is in Testing mode, so the login page also
+> takes a password. Use **`moksha@123`** — no email needed. It issues an ordinary admin session;
+> every server-side check still applies. See [D-016](./moksha-ecommerce/docs/DECISIONS.md).
 
 → [Setup and details](./moksha-ecommerce/README.md)
 → [System design](./moksha-ecommerce/docs/SYSTEM_DESIGN.md)

@@ -405,10 +405,13 @@ Tools, all thin wrappers over the same service functions the HTTP routers call:
 | `search_products(query)` | public |
 | `get_my_orders()` | **caller only, no arguments** |
 | `get_order_status(order_id)` | **caller only, ownership re-checked** |
+| `add_to_cart(name_or_slug, quantity?)` | proposes a validated cart line — see above |
 
-The agent is **read-only**: there is no write tool, so there is nothing to be talked into. That is a
+**Five of the six tools are reads, and the sixth buys nothing.** What the agent cannot do is a
 property of the tool list, not of the system prompt — a prompt is guidance, a missing tool is an
-impossibility.
+impossibility. There is no tool that places an order, takes payment, changes a status or edits the
+catalogue, and the inventory test in `test_agent_authz.py` names the six explicitly and fails on
+any tool matching `create`, `place`, `pay`, `cancel`, `refund` or `delete`.
 
 **429** with `Retry-After` when the per-user rate limit is hit. Every turn is a paid API call; an
 endpoint that invokes an LLM on demand with no ceiling is a billing incident waiting to be noticed.
