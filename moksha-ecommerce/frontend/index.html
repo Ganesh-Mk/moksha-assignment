@@ -1,9 +1,16 @@
 <!doctype html>
-<html lang="en">
+<!-- data-theme="light" pins the storefront to the light palette.
+     The token layer supports both and follows the OS by default; this is a product decision, not
+     a technical one — a shop should look the same to everyone, and the warm-paper palette is the
+     brand. The dark tokens stay in theme.css because this attribute is the entire switch: adding
+     a theme toggle later is a line of state, not a redesign. -->
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
+    <!-- Matches data-theme above. Without it the browser paints a dark canvas for a moment before
+         the stylesheet lands, and form controls and scrollbars render dark. -->
+    <meta name="color-scheme" content="light" />
     <meta
       name="description"
       content="Moksha — haircare, honestly made. A technical assignment demonstrating Google sign-in, Stripe payments and an AI support agent."
