@@ -93,16 +93,29 @@ export function Testimonials() {
           <Picture
             asset="testimonial-model"
             alt="Customer before and after using Hydra Curls"
-            className="aspect-[1091/993] w-full [clip-path:polygon(0_0,100%_0,100%_93%,0_100%)]"
+            className="aspect-[1091/993] w-full"
             imgClassName="h-full w-full object-cover object-top"
             sizes="(min-width: 1024px) 57vw, 100vw"
           />
+          {/* The photograph's lower edge curves in the design. A clip-path polygon can only cut
+              it straight, so the curve is painted instead — the band's own cyan laid over the
+              bottom of the image, which is the same trick every section seam on this page uses
+              and, unlike `clip-path: path()`, it scales with the column. */}
+          <SoftWave
+            fillClassName="fill-brand-cyan-mid"
+            className="absolute inset-x-0 bottom-0 h-[clamp(2rem,5vw,5.5rem)]"
+          />
           {/* The comparison seam. Presentational: the "before" and "after" are already
               composited into the single exported image. */}
-          <div aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px bg-white/80" />
+          {/* The comparison seam stops short of the curved edge below rather than running
+              into it. */}
           <div
             aria-hidden="true"
-            className="bg-pastel-blush/95 absolute top-1/2 left-1/2 flex size-[3.5rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-0.5 rounded-full md:size-[5.75rem]"
+            className="absolute top-0 bottom-[12%] left-1/2 w-px bg-white/80"
+          />
+          <div
+            aria-hidden="true"
+            className="bg-pastel-blush/95 absolute top-[42%] left-1/2 flex size-[3.5rem] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-0.5 rounded-full md:size-[5.75rem]"
           >
             <ChevronLeft className="size-5 text-white" />
             <ChevronRight className="size-5 text-white" />
@@ -139,7 +152,7 @@ export function Testimonials() {
                 <CarouselItem key={index} className="basis-auto pt-4">
                   {/* No border: the reference card is a flat dark fill on the cyan. The rule that was
                         here read as an outline the design does not have. */}
-                  <figure className="bg-ink rounded-[1.25rem] p-6 md:p-8">
+                  <figure className="bg-ink w-full max-w-[34rem] rounded-[1.25rem] p-6 md:p-8">
                     {/* aria-label is prohibited on a plain <div>, and adding role="img" purely
                         to carry one trades an accessibility violation for a lint one. The
                         rating is stated as text and the stars are marked decorative. */}

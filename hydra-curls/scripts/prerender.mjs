@@ -96,4 +96,28 @@ template = template.replace(scriptTag[0], loader)
 await writeFile(INDEX, template)
 await rm(join(APP, 'dist-ssr'), { recursive: true, force: true })
 
+/*
+ * Guard against JSX comments leaking into the page as text.
+ *
+ * A `// like this` line written in JSX *children* position is not a comment — it is a string,
+ * and React renders it. It shipped once: three paragraphs of reasoning about hover targets went
+ * live above the ingredient cards. Nothing in tsc, oxlint or Prettier objects, because the code
+ * is perfectly valid; only the output is wrong. So the output is what gets checked.
+ */
+{
+  const bodyText = html
+    .replace(/<script[\s\S]*?<\/script>/g, '')
+    .replace(/<style[\s\S]*?<\/style>/g, '')
+    .replace(/<[^>]+>/g, ' ')
+  const leak = bodyText.match(/(^|\s)\/\/\s+\S[^<]{20,}/)
+  if (leak) {
+    console.error('')
+    console.error('  \u2716 A JSX comment is being rendered as page text:')
+    console.error('    ' + leak[0].trim().slice(0, 160) + '\u2026')
+    console.error('    Wrap it as {/* ... */} — a bare // in JSX children is a string.')
+    console.error('')
+    process.exit(1)
+  }
+}
+
 console.log(`   ✓ prerendered ${(html.length / 1024).toFixed(0)}KB of HTML, bundle deferred`)

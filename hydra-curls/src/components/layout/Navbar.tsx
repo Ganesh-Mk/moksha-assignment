@@ -75,7 +75,7 @@ export function Navbar() {
           // the type sits on darkness rather than on the fade. No bottom rule in either state —
           // the whole point is that there is no edge.
           atTop
-            ? 'bg-gradient-to-b from-black/90 via-black/70 via-65% to-transparent pb-8'
+            ? 'bg-gradient-to-b from-black/70 via-black/45 via-65% to-transparent pb-8'
             : 'bg-ink/90 backdrop-blur-md',
           hidden ? '-translate-y-full' : 'translate-y-0',
         )}

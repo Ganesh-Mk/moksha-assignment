@@ -107,9 +107,13 @@ export function ProductShowcase() {
           aria-hidden="true"
           className="pointer-events-none absolute bottom-0 left-1/2 aspect-square w-[107%] -translate-x-1/2"
         >
-          <div className="bg-brand-purple/20 absolute inset-0 translate-y-[4.44%] rounded-full" />
-          <div className="bg-brand-purple/38 absolute inset-0 translate-y-[2.24%] rounded-full" />
-          <div className="bg-brand-purple absolute inset-0 rounded-full" />
+          {/* Figma offsets the two translucent discs 46px and 91px *below* the solid one. Doing
+              that literally pushed them past this wrapper's clip and the disc's whole bottom edge
+              came out sliced flat. The same relationship, expressed by raising the inner rings
+              instead, keeps every edge inside the box. */}
+          <div className="bg-brand-purple/20 absolute inset-0 rounded-full" />
+          <div className="bg-brand-purple/38 absolute inset-0 -translate-y-[2.2%] rounded-full" />
+          <div className="bg-brand-purple absolute inset-0 -translate-y-[4.44%] rounded-full" />
         </div>
 
         <div
@@ -230,7 +234,7 @@ export function ProductShowcase() {
           glyphs at the ends of a sagging arc sit above the SVG's own box — but only enough to
           clear the thumbnails. The reference tucks this line directly under the circle's rim,
           not a screen below it. */}
-      <div className="bg-page relative pt-[5%]">
+      <div className="bg-page relative pt-[1.5%]">
         <SoftWave
           fillClassName="fill-brand-cyan-soft"
           className="absolute inset-x-0 bottom-0 h-[clamp(3rem,8vw,9rem)]"
@@ -246,7 +250,7 @@ export function ProductShowcase() {
           chord={1400}
           sag={240}
           fontSize={72}
-          className="pointer-events-none relative z-10 mx-auto w-[86%] max-w-[98.25rem] pb-[7%] text-black/45"
+          className="pointer-events-none relative z-10 mx-auto w-[86%] max-w-[98.25rem] pb-[3%] text-black/45"
         >
           {curvedArcText}
         </CurvedText>

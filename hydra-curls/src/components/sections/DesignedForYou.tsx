@@ -6,7 +6,6 @@ import { Eyebrow } from '@/components/primitives/Eyebrow'
 import { Picture } from '@/components/primitives/Picture'
 import { CircularText } from '@/components/primitives/CircularText'
 import { SectionHeading } from '@/components/primitives/SectionHeading'
-import { SoftWave } from '@/components/primitives/SoftWave'
 import { decorativeArcText, hairTypes } from '@/content/sections'
 import { site } from '@/content/site'
 import { cn } from '@/lib/utils'
@@ -62,20 +61,24 @@ export function DesignedForYou() {
     >
       {/* The band's top edge is a diagonal in the reference, not a horizontal: white carries
           over from the section above across the upper left and the cyan starts beneath it.
-          Painted before the clouds so they sit on the white side of the line. */}
-      <SoftWave
-        fillClassName="fill-page"
-        shape="diagonal"
-        className="absolute inset-x-0 top-0 h-[clamp(5rem,18vw,20rem)]"
-      />
 
-      {/* Clouds bleed off the top-left corner behind the medallion. */}
-      <Picture
-        asset="clouds"
-        alt=""
-        className="pointer-events-none absolute -top-[1%] -left-[6%] -z-10 w-[38%] opacity-90"
-        sizes="42vw"
-      />
+          The clouds live *inside* that white wedge. They belong on top of the white and behind
+          the cyan, which a z-index alone cannot express — the cyan here is the section's own
+          background, painted under everything. So the wedge and the clouds share one clipped
+          box: the clip is the same diagonal the wedge draws, which means the artwork simply
+          stops where the cyan begins. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[clamp(5rem,18vw,20rem)] [clip-path:polygon(0_0,100%_0,100%_5%,0_100%)]"
+      >
+        <div className="bg-page absolute inset-0" />
+        <Picture
+          asset="clouds"
+          alt=""
+          className="absolute -top-[14%] -left-[6%] w-[42%] opacity-90"
+          sizes="42vw"
+        />
+      </div>
 
       <Container className="relative pt-10 md:pt-14">
         <BrandMedallion />

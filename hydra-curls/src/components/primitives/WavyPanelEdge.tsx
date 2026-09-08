@@ -29,7 +29,10 @@ export function WavyPanelEdge({ side, fillClassName, className }: WavyPanelEdgeP
         // The path now runs the full 800 of its own box. It used to stop at 700, which left the
         // bottom eighth of every seam unpainted — the sliver that appeared to escape the row.
         'pointer-events-none absolute inset-y-0 hidden w-10 lg:block',
-        side === 'left' ? 'right-full' : 'left-full -scale-x-100',
+        // Pulled back half its own width so the ripple is centred on the join. Sitting
+        // wholly outside the panel put it left of the seam on one row and right of it on the
+        // next, which is what made consecutive rows look 40px out of step.
+        side === 'left' ? 'right-full -mr-5' : 'left-full -ml-5 -scale-x-100',
         className,
       )}
     >

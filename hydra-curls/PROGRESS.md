@@ -23,6 +23,34 @@ CLS at 0 every single time — and the top of the process list during the low ru
 sessions, two VS Code windows and a browser. Trust LCP and CLS; treat a single mobile score as
 noise unless the machine is idle.
 
+## Fourth review round
+
+**A JSX comment shipped as visible page text.** Three paragraphs of reasoning about hover targets
+rendered above the ingredient cards on the live site. A `// like this` line written in JSX
+_children_ position is not a comment — it is a string, and React renders it. `tsc`, oxlint and
+Prettier all pass, because the code is valid; only the output is wrong.
+
+`scripts/prerender.mjs` now scans the rendered HTML for that pattern and **fails the build**.
+Verified by reintroducing the bug deliberately and watching it fail. If you write a comment inside
+JSX children, use `{/* ... */}`.
+
+Other fixes in this round:
+
+- **The purple disc's bottom edge came out sliced flat.** Figma offsets the two translucent discs
+  46px and 91px _below_ the solid one; doing that literally pushed them past the wrapper's clip.
+  The same relationship expressed by raising the inner rings keeps every edge inside the box.
+- **The Learn & Grow seams still read as misaligned** even after the margins came out, because the
+  ripple sat wholly outside the panel — left of the join on one row, right of it on the next. It
+  now straddles the join, so all three rows agree.
+- **The clouds could not be layered with a z-index.** They belong on top of the white wedge and
+  behind the cyan, but the cyan is the section's own background, painted under everything. The
+  wedge and the clouds now share one box clipped to the same diagonal, so the artwork simply stops
+  where the cyan starts.
+- The testimonial photograph's lower edge is curved rather than a straight diagonal cut — painted
+  with the band's own colour, since `clip-path` polygons cannot curve and `path()` does not scale.
+- Handle raised off centre, quote cards narrowed to the reference's proportions, arc tucked up
+  under the disc, navbar scrim lightened one step.
+
 ## Third review round
 
 - **The mobile menu had no animation at all.** shadcn's Sheet ships `animate-in` /

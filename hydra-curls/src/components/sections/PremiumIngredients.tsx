@@ -66,11 +66,11 @@ export function PremiumIngredients() {
             // meant the hover inherited the reveal's 0.7s duration *and* its stagger delay, so
             // a card lagged, then jumped, and fought itself if you moved away mid-transition.
             <li key={card.name} data-reveal="" style={{ '--reveal-i': index + 1 } as CSSProperties}>
-              // The hover target is this element and it never moves. Putting the lift here was //
-              the flicker: near a card's lower edge the transform slid the box out from under // the
-              pointer, which dropped the hover, which dropped the transform, which put the // box
-              back under the pointer — several times a second. The visual lift belongs on // a
-              child, whose position the pointer does not care about.
+              {/* The hover target is this <article> and it never moves. Putting the lift here
+                  was the flicker: near a card's lower edge the transform slid the box out from
+                  under the pointer, which dropped the hover, which dropped the transform, which
+                  put the box back under the pointer — several times a second. The visual lift
+                  belongs on a child, whose position the pointer does not test against. */}
               <article className="group relative h-full">
                 <div
                   className={cn(
