@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react'
 
 import { BrandButton } from '@/components/primitives/BrandButton'
 import { Picture } from '@/components/primitives/Picture'
+import { SoftWave } from '@/components/primitives/SoftWave'
 import { benefitCards, products } from '@/content/sections'
 import { cn } from '@/lib/utils'
 
@@ -33,7 +34,16 @@ const LINEUP = [
  */
 export function BenefitCards() {
   return (
-    <section aria-labelledby="benefits-heading" className="bg-page relative w-full py-10 md:py-14">
+    <section
+      aria-labelledby="benefits-heading"
+      className="bg-page relative w-full pt-16 pb-10 md:pt-24 md:pb-14"
+    >
+      {/* The campaign band above hands over on a curve, the same way every other seam on the
+          page does. Carries this section's colour up over the artwork. */}
+      <SoftWave
+        fillClassName="fill-page"
+        className="absolute inset-x-0 top-0 h-[clamp(2.5rem,6vw,7rem)] -translate-y-full"
+      />
       <h2 id="benefits-heading" className="sr-only">
         Why Hydra Curls works
       </h2>

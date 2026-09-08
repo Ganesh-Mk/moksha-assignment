@@ -378,6 +378,60 @@
   animation: clock-spin 48s linear infinite;
 }
 
+/*
+ * The mobile menu's entrance.
+ *
+ * shadcn's Sheet ships `animate-in` / `slide-in-from-right` classes, which belong to
+ * `tw-animate-css` — a package this project does not have. Those classes were therefore doing
+ * nothing at all, and the panel simply appeared: no slide, no fade, whatever duration the
+ * markup asked for. That is what "it's coming very fast" was.
+ *
+ * Written out here rather than adding the dependency for four keyframes. Radix puts
+ * `data-state` on both the panel and the scrim, which is all the hook needed. Only the `right`
+ * side is styled because that is the only side this page opens from.
+ *
+ * The reduced-motion block at the end of this file collapses these along with everything else.
+ */
+@keyframes sheet-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes sheet-slide-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes sheet-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+[data-slot='sheet-content'][data-state='open'] {
+  animation: sheet-slide-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+[data-slot='sheet-content'][data-state='closed'] {
+  animation: sheet-slide-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+[data-slot='sheet-overlay'][data-state='open'] {
+  animation: sheet-fade-in 320ms ease-out both;
+}
+
+[data-slot='sheet-overlay'][data-state='closed'] {
+  animation: sheet-fade-out 220ms ease-in both;
+}
+
 /* Honoured globally rather than per-component, so a Phase 2 animation cannot forget it. */
 @media (prefers-reduced-motion: reduce) {
   html {

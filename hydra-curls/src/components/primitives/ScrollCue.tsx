@@ -24,7 +24,9 @@ export function ScrollCue({ href, label, className, style }: ScrollCueProps) {
       href={href}
       style={style}
       className={cn(
-        'inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5',
+        // 44 sits exactly on the guideline and can measure a hair under it once fractional
+        // layout is involved; 48 clears it at any zoom.
+        'inline-flex min-h-12 min-w-12 flex-col items-center justify-center gap-0.5',
         className,
       )}
     >

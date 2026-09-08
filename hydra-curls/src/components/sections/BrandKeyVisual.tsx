@@ -20,17 +20,23 @@ export function BrandKeyVisual() {
         {brandKeyVisual.heading}
       </h2>
 
-      {/* The campaign band does not begin on a straight line. In the reference the purple rises
-          into the section above it on a wave, with a paler rim riding just ahead of it. Two
-          stacked paths, the lighter one offset a few pixels up, reproduce that rim without a
-          second asset. */}
+      {/* The campaign band does not begin on a straight line: in the reference the purple rises
+          into the section above it on a wave, with a paler rim riding just ahead of it.
+
+          The shape must NOT be flipped. SoftWave's path fills the bottom of its own box, so sat
+          directly above the section it runs from the wavy edge down to the section's top with no
+          seam. Flipping it filled the top of the box instead and left a band of page colour
+          between the wave and the artwork — a straight edge under a stray purple stripe. */}
       <div className="pointer-events-none absolute inset-x-0 top-px z-10 -translate-y-full">
         <div className="relative">
           <SoftWave
-            fillClassName="fill-brand-purple-light/45"
-            className="absolute inset-x-0 bottom-1 -scale-y-100"
+            fillClassName="fill-brand-purple-light/50"
+            className="absolute inset-x-0 -top-3 h-[clamp(3rem,7vw,8rem)]"
           />
-          <SoftWave fillClassName="fill-brand-purple" className="-scale-y-100" />
+          <SoftWave
+            fillClassName="fill-brand-purple"
+            className="relative h-[clamp(3rem,7vw,8rem)]"
+          />
         </div>
       </div>
       <Picture

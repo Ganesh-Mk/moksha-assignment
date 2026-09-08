@@ -44,8 +44,9 @@ export function LearnAndGrow() {
           <li
             key={index}
             data-reveal=""
+            // `overflow-hidden` so the seam cannot spill past the row into the band below.
             className={cn(
-              'grid lg:grid-cols-2',
+              'grid overflow-hidden lg:grid-cols-2',
               // The panel is the second cell in the DOM either way, so the image side is
               // switched by reordering at `lg` rather than by duplicating the markup.
               item.imageSide === 'right' && 'lg:[&>*:first-child]:order-2',
@@ -62,13 +63,18 @@ export function LearnAndGrow() {
               className={cn(
                 'relative flex flex-col justify-center px-6 py-12 md:px-12 lg:py-16',
                 'lg:z-10 xl:px-[7.5rem]',
-                item.imageSide === 'left' ? 'lg:-ml-4' : 'lg:-mr-4',
                 item.panelClassName,
               )}
             >
               {/* The seam between photograph and panel ripples in the design. Dropped below
-                  `lg`, where the two stack and a vertical wave would run across the join
-                  rather than along it. */}
+                  `lg`, where the two stack and a vertical wave would run across the join rather
+                  than along it.
+
+                  The panels used to lap the photo with a 16px negative margin, alternating side
+                  with the layout — which put the seam at 50% − 16px on one row and 50% + 16px on
+                  the next, so consecutive rows visibly disagreed about where the join was. The
+                  margin is gone: every row now meets at the grid's own midpoint and the ripple
+                  itself provides the overlap. */}
               <WavyPanelEdge
                 side={item.imageSide === 'left' ? 'left' : 'right'}
                 fillClassName={item.edgeFillClassName}

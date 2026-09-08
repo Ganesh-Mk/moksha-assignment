@@ -12,12 +12,15 @@ import { cn } from '@/lib/utils'
  * the *next* section's colour over this one and can be dropped at any boundary interchangeably.
  */
 const SHAPES = {
-  /** A gentle single wave. The quiet default. */
-  soft: 'M0 70C240 110 480 30 720 50s480 50 720 16v54H0z',
-  /** Shallow scallops — the edge above the "Learn & Grow" heading. */
-  bumpy: 'M0 74C120 30 240 34 360 62s240-36 360-18 240 56 360 28 240-42 360-16v70H0z',
-  /** One long asymmetric sweep, high at the left. Under the testimonial band. */
-  swoop: 'M0 30C420 118 900 116 1440 70v50H0z',
+  /** A generous single wave. The quiet default, but not a flat one. */
+  soft: 'M0 58C260 122 500 8 740 34s460 78 700 26v62H0z',
+  /** Deep scallops — the edge above the "Learn & Grow" heading. */
+  bumpy: 'M0 76C120 12 250 16 372 56s238-58 356-24 232 78 356 38 236-62 356-24v76H0z',
+  /**
+   * One long asymmetric sweep. The band it covers ends high on the left and carries much further
+   * down on the right, which is the way round the reference has it.
+   */
+  swoop: 'M0 4C480 40 960 84 1440 108v12H0z',
   /**
    * A straight diagonal rather than a curve. Unlike the others this one paints the wedge *above*
    * the line, which is how the hair-type band meets the cloud art above it.
@@ -53,7 +56,7 @@ export function SoftWave({
       // Without this the curve's amplitude would grow with the viewport instead of stretching.
       preserveAspectRatio="none"
       className={cn(
-        'pointer-events-none block h-[clamp(2.5rem,5vw,6rem)] w-full',
+        'pointer-events-none block h-[clamp(3rem,7vw,8.5rem)] w-full',
         flip && '-scale-x-100',
         className,
       )}

@@ -226,11 +226,11 @@ export function ProductShowcase() {
           field carries on beneath the purple circle and hands over to white along a curve, with
           the arc crossing that boundary. Rendering the text on flat white lost the shape
           entirely and left the line floating in a gap, which is what it looked like. */}
-      {/* The top padding is not decoration. CurvedText renders `overflow-visible`, and the
-          glyphs at the ends of a sagging arc sit well above the SVG's own box — measured at
-          160px of ink above the element at 1440px wide. Without clearance here the line rides
-          up over the thumbnails above it. */}
-      <div className="bg-page relative pt-[13%]">
+      {/* Some top padding is still needed — CurvedText renders `overflow-visible` and the
+          glyphs at the ends of a sagging arc sit above the SVG's own box — but only enough to
+          clear the thumbnails. The reference tucks this line directly under the circle's rim,
+          not a screen below it. */}
+      <div className="bg-page relative pt-[5%]">
         <SoftWave
           fillClassName="fill-brand-cyan-soft"
           className="absolute inset-x-0 bottom-0 h-[clamp(3rem,8vw,9rem)]"

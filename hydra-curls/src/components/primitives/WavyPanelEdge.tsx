@@ -26,13 +26,15 @@ export function WavyPanelEdge({ side, fillClassName, className }: WavyPanelEdgeP
       viewBox="0 0 40 800"
       preserveAspectRatio="none"
       className={cn(
+        // The path now runs the full 800 of its own box. It used to stop at 700, which left the
+        // bottom eighth of every seam unpainted — the sliver that appeared to escape the row.
         'pointer-events-none absolute inset-y-0 hidden w-10 lg:block',
         side === 'left' ? 'right-full' : 'left-full -scale-x-100',
         className,
       )}
     >
       <path
-        d="M40 0H16c14 66-12 100 2 166s-14 100 0 166-12 100 2 166-14 100 0 136 8 40 4 66h16z"
+        d="M40 0H18C30 80 6 160 20 240S6 400 22 480 8 640 18 720 30 780 20 800h20z"
         className={fillClassName}
       />
     </svg>

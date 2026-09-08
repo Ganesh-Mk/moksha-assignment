@@ -12,14 +12,38 @@
 |         | Performance | Accessibility | Best practices | SEO |
 | ------- | ----------- | ------------- | -------------- | --- |
 | Desktop | **98**      | **100**       | 100            | 100 |
-| Mobile  | **98**      | **100**       | 100            | 100 |
+| Mobile  | 74–98       | **100**       | 100            | 100 |
 
 LCP 1.0s desktop / 2.3s mobile · **CLS 0** · page 15,393px against Figma's 15,249 (0.9%) · no horizontal
 scroll and no sub-44px tap target at 320/375/768/1024/1440/1920.
 
-Mobile perf read 87–89 when another heavy process shared the machine and 98 once it stopped; LCP
-and CLS are stable either way. The earlier "mobile is stuck at 89" conclusion was mostly measuring
-CPU contention, not the page.
+Mobile performance is a measurement of the machine as much as the page. Across runs on this
+laptop it reads anywhere from 74 to 98 purely with TBT (310–1120ms) while LCP holds at 2.3s and
+CLS at 0 every single time — and the top of the process list during the low runs is two Claude
+sessions, two VS Code windows and a browser. Trust LCP and CLS; treat a single mobile score as
+noise unless the machine is idle.
+
+## Third review round
+
+- **The mobile menu had no animation at all.** shadcn's Sheet ships `animate-in` /
+  `slide-in-from-right`, which belong to `tw-animate-css` — a package this project does not have.
+  Every one of those classes was a no-op, so the panel simply appeared. Four keyframes written in
+  `globals.css` instead of adding the dependency; the links stagger in behind it.
+- **Card hovers flickered because the hover target moved.** The lift was on the same element the
+  pointer tests against, so near a card's lower edge the transform slid the box out from under the
+  cursor, which dropped the hover, which dropped the transform, which put the box back — several
+  times a second. The lift now happens on a child. Same fix on the ingredient and hair-type cards.
+- **The key-visual wave was flipped**, filling the top of its own box and leaving a band of page
+  colour between the curve and the artwork — a stray purple stripe over a straight edge.
+- **The Learn & Grow seams disagreed between rows.** The panels lapped the photo with a 16px
+  negative margin that alternated side with the layout, putting the join at 50% − 16px on one row
+  and 50% + 16px on the next. The margin is gone; the ripple itself provides the overlap.
+- **The panel seam was 100 units short.** Its path stopped at y=700 in an 800-unit box, so the
+  bottom eighth of every seam went unpainted — the sliver that looked like it was escaping the row.
+- Swoop reversed to match the reference (band short on the left, carrying further down on the
+  right); testimonial cards lost the outline the design does not have; all curve amplitudes
+  increased; the benefit band gained a curved top; clouds moved behind the hair-type diagonal;
+  navbar scrim deepened and its bottom rule removed; reading-progress bar deleted.
 
 ## Second review round — the design's curved seams
 
